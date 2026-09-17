@@ -934,6 +934,7 @@ class TestMotionReader(unittest.TestCase):
         self.assertIn("errno", reader.last_error)
 
     def test_open_success_clears_error(self):
+        import unittest.mock as mock
         reader = MotionReader(device_path="/dev/definitely-not-jcs2-tilt-node")
         self.assertFalse(reader.open())
         self.assertIsNotNone(reader.last_error)
@@ -941,11 +942,10 @@ class TestMotionReader(unittest.TestCase):
         try:
             reader._device_path = None
             # Simulate a successful open path without touching hardware.
-            import unittest.mock as _mock
-            with _mock.patch("os.open", return_value=r):
-                with _mock.patch(
-                        "tilt_control.motion_reader._find_motion_event_node",
-                        return_value="/dev/fake-event"):
+            with mock.patch("os.open", return_value=r):
+                with mock.patch(
+                        "tilt_control.motion_reader._discover_motion_node",
+                        return_value=("/dev/fake-event", "tier1", "")):
                     self.assertTrue(reader.open())
             self.assertIsNone(reader.last_error)
             reader._fd = None  # hand fd ownership back to this test
@@ -1505,10 +1505,12 @@ class TestHidrawReader(unittest.TestCase):
             self.assertIn("no 28de:1205", detail)
 
     def test_resolve_imu_hidraw_on_host_without_steam(self):
-        # Read-only real sysfs: input2 hidraw function exists in both
-        # Steam states (Steam only tears down .0003's input children).
+        # Read-only real sysfs: only meaningful where a Deck IMU exists.
+        # Non-Deck hosts (no 28de:1205 node) skip instead of failing.
         from .hidraw_reader import resolve_imu_hidraw
         node, detail = resolve_imu_hidraw()
+        if node is None and "no 28de:1205" in detail:
+            self.skipTest("no Steam Deck IMU on this host")
         self.assertIsNotNone(node)
         self.assertTrue(node.startswith("/dev/hidraw"))
         self.assertIn("input2", detail)

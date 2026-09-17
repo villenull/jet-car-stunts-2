@@ -1,0 +1,14 @@
+#!/bin/bash
+# Deck-only GamingMode: exec the vendor session script with -O pinned to eDP-1.
+# Runtime-patched copy so upstream flag additions flow through; only the -O
+# token differs. If upstream removes the -O line, warn (journal) and proceed
+# stock rather than failing the session start.
+set -euo pipefail
+tmp=$(mktemp /tmp/gamescope-session-edp1.XXXXXX)
+trap "rm -f $tmp" EXIT
+sed "s/-O .*,eDP-1/-O eDP-1/" /usr/lib/steamos/gamescope-session > "$tmp"
+if ! grep -q "^-O eDP-1\| -O eDP-1" "$tmp"; then
+  echo "gamescope-session-edp1: WARNING: no -O line patched; upstream script changed?" >&2
+fi
+chmod +x "$tmp"
+exec "$tmp"

@@ -37,7 +37,7 @@ none exists, so no ancestor instructions apply.
 | Packaging / distribution planning | `packaging/*.py`, `packaging/*.md`, `packaging/*.json`, `packaging/installer/runtime-lock.json`, `packaging/installer/licenses/*.txt` |
 | Game-fix patch scripts + manifests | `game-fixes/**/[*.py, *.sh, *.json, *.md]` across `audio/`, `controls/`, `editor-save/`, `maps/`, `personal-deploy/` — patch/compose/verify/test scripts and sanitized JSON/MD manifests only |
 | Progression-unlock scripts | `progression-unlock/*.py`, `progression-unlock/assets/candidate.json` (hashes/offsets only) |
-| Approved Steam-grid artwork | `artwork/steam-proposal/build_proposal.py`, `artwork/steam-proposal/README.md`, `artwork/steam-proposal/sources.json`, `artwork/steam-proposal/library/*` (proposal PNG/ICO/JPG), `artwork/steam-proposal/originals/*.json`, `artwork/steam-proposal/revised*/**.md`, `artwork/steam-proposal/*-proposal.jpg`, `artwork/steam-proposal/source-contact-sheet.jpg`, `artwork/steam-proposal/revised-20260915/wide-v2-generated-master-1832x858.png` (applied final wide), `artwork/steam-proposal/revised-20260915/logo-tight.png` (tight-crop RGBA logo) |
+| Developer-only Deck display pins | `dev-deck-display/README.md`, `dev-deck-display/gamescope-session-edp1`, `dev-deck-display/override.conf`, `dev-deck-display/monitors-dp1-disable.snippet.lua` (Deck-local config, NOT distributed) |
 
 Deliberately NOT tracked (present locally, excluded by .gitignore):
 `.exe`, `jcs2-controller-linux`, `*.jar`, `*.apk`, `*.so*`, `*.patched`,

@@ -79,6 +79,7 @@ Nothing here is labeled ready / fully fixed.
 run-jcs2  linux-launcher/  controller/  game-fixes/  packaging/
 steam/  artwork/steam-proposal/  run-offline-tests.py
 docs/ (this handoff; historical root *.md stay local-only, not in git)
+dev-deck-display/ (developer-only: Deck-local display pins, not distributed)
 ```
 
 NOT distributed and NOT in git: `backups/`, `staging/`, `analysis/`,

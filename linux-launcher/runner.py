@@ -361,7 +361,7 @@ class Launcher:
     def start_emulator(self) -> None:
         argv = [str(SDK / "emulator/emulator"), "-avd", AVD, "-port", str(CONSOLE_PORT), "-no-snapshot", "-no-boot-anim",
                 "-adb-path", str(SDK / "platform-tools/adb"),
-                "-gpu", "host", "-memory", "1536", "-skin", "1920x1080", "-qemu", "-net", "none"]
+                "-gpu", "host", "-memory", "1536", "-qemu", "-net", "none"]
         if self.args.headless:
             argv.insert(argv.index("-qemu"), "-no-window")
         else:

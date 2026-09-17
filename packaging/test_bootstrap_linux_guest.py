@@ -232,6 +232,19 @@ class MarkerTests(unittest.TestCase):
             self.assertEqual((guest / '.jcs2-owned').read_text(), 'jcs2-fresh\n')
             self.assertFalse(bootstrap.check_bootstrap_marker(cfg, fresh))
 
+    def test_marker_missing_on_freshly_claimed_guest_proceeds(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / 'avd'
+            home.mkdir()
+            guest = home / 'jcs2-fresh.avd'
+            guest.mkdir()
+            (guest / 'config.ini').write_text('hw.gpu.mode = swiftshader_indirect\n')
+            (guest / '.jcs2-owned').write_text('jcs2-fresh\n')
+            (home / 'jcs2-fresh.ini').write_text('path=' + str(guest) + '\n')
+            cfg = self._adopt_cfg(home)
+            self.assertTrue(bootstrap.guest_freshly_claimed(cfg))
+            self.assertFalse(bootstrap.check_bootstrap_marker(cfg, False))
+
     def test_claim_refuses_booted_guest_without_marker(self):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp) / 'avd'

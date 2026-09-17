@@ -690,7 +690,6 @@ def claim_avd(cfg: BootstrapConfig) -> tuple[Path, Path, bool]:
         raise BootstrapError(EXIT_CLAIM, f"AVD claim failed: {exc}") from exc
     return guest, pointer, True
 
-
 def check_bootstrap_marker(cfg: BootstrapConfig, fresh_owned: bool) -> bool:
     """Pre-boot marker gate (logic.hpp compatible/completed). Raises 13."""
     state_path = cfg.avd_home / BOOTSTRAP_STATE
@@ -698,6 +697,13 @@ def check_bootstrap_marker(cfg: BootstrapConfig, fresh_owned: bool) -> bool:
     if has_prior and not prior:
         raise BootstrapError(EXIT_BOOTSTRAP_MARKER,
                              "bootstrap marker is empty; refusing migration")
+    # A claimed guest whose .jcs2-owned marker carries THIS run's AVD name
+    # is a fresh claim even when the avd_home dir itself pre-existed
+    # (e.g. an earlier failed run wrote config + owned marker but exited
+    # before the pending-marker write): missing marker means proceed, not
+    # a restore. Adopted-but-never-booted guests behave identically.
+    if not has_prior and guest_freshly_claimed(cfg):
+        return False
     # Adopted-but-never-booted guests (fresh_owned via adopt path) start
     # with no marker exactly like a newly claimed home.
     if not has_prior and fresh_owned:
@@ -709,6 +715,23 @@ def check_bootstrap_marker(cfg: BootstrapConfig, fresh_owned: bool) -> bool:
         raise BootstrapError(EXIT_BOOTSTRAP_MARKER,
                              "bootstrap marker missing on existing owned state; refusing restore")
     return bootstrap_marker_completed(prior if has_prior else "", cfg.identity)
+
+
+def guest_freshly_claimed(cfg: BootstrapConfig) -> bool:
+    """True when the owned marker names this run's AVD and the guest never booted."""
+    guest = cfg.avd_home / f"{cfg.avd_name}.avd"
+    pointer = cfg.avd_home / f"{cfg.avd_name}.ini"
+    owned = guest / OWNED_MARKER
+    has_marker, text = read_marker(owned)
+    if not has_marker or text != cfg.avd_name + "\n":
+        return False
+    if not (guest / "config.ini").is_file() or not pointer.is_file():
+        return False
+    booted = [p for p in guest.iterdir()
+              if p.suffix == ".qcow2" or p.name in (
+                  "hardware-qemu.ini", "data", "multiinstance.lock",
+                  "bootcompleted.ini", "version_num.cache")]
+    return not booted
 
 
 def write_pending_marker(cfg: BootstrapConfig) -> None:

@@ -413,32 +413,13 @@ class Launcher:
         raise LauncherError("Gaming Mode main window was not ready within the startup deadline")
 
     def orient_visible_emulator(self) -> None:
-        """Rotate the virtual phone, not the host monitor or game framebuffer."""
-        if self.args.headless:
-            return
-        with socket.create_connection(("127.0.0.1", CONSOLE_PORT), timeout=5) as console:
-            def response() -> bytes:
-                data = bytearray()
-                while len(data) < 65536:
-                    chunk = console.recv(4096)
-                    if not chunk:
-                        raise LauncherError("emulator console closed during rotation")
-                    data.extend(chunk)
-                    if any(line.startswith(b"KO") for line in data.splitlines()):
-                        raise LauncherError("emulator console rejected rotation setup")
-                    if data.endswith(b"OK\r\n") or data.endswith(b"OK\n"):
-                        return bytes(data)
-                raise LauncherError("oversized emulator console response")
-
-            greeting = response()
-            if b"Authentication required" in greeting:
-                token = (Path.home() / ".emulator_console_auth_token").read_text().strip()
-                # Never put this local console credential into command/event logs.
-                console.sendall(("auth " + token + "\n").encode())
-                response()
-            console.sendall(b"rotate\n")
-            response()
-        self.log("stage=virtual-display-rotated", clockwise_degrees=90)
+        """No-op: the guest boots landscape-native (1920x1080 AVD geometry)
+        and the game self-rotates to fullscreen. The legacy console `rotate`
+        turns the device portrait and renders the game 90 degrees off
+        (verified 2026-09-17 across portrait/landscape AVD trials).
+        Kept as a stage hook so call sites and logs stay stable."""
+        self.log("stage=virtual-display-rotated", clockwise_degrees=0,
+                 note="rotate skipped: guest is landscape-native")
 
     def isolate_guest(self) -> None:
         self.log("stage=trusted-root-isolation")

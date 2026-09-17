@@ -359,14 +359,9 @@ class Launcher:
         return [str(SDK / "platform-tools/adb"), "-P", str(ADB_PORT), "-s", SERIAL, "shell", ISOLATION_SCRIPT]
 
     def start_emulator(self) -> None:
-        # -skin 1920x1080 forces a landscape-native framebuffer: without it
-        # the AVD is portrait-native (1080x1920) and the visible Qt window
-        # renders the landscape game frame 90 degrees off (verified
-        # 2026-09-17: base display app 1920x1080 with skin vs 1080x1920
-        # without; desktop screenshots upright vs rotated).
         argv = [str(SDK / "emulator/emulator"), "-avd", AVD, "-port", str(CONSOLE_PORT), "-no-snapshot", "-no-boot-anim",
                 "-adb-path", str(SDK / "platform-tools/adb"),
-                "-gpu", "host", "-memory", "1536", "-skin", "1920x1080", "-qemu", "-net", "none"]
+                "-gpu", "host", "-memory", "1536", "-qemu", "-net", "none"]
         if self.args.headless:
             argv.insert(argv.index("-qemu"), "-no-window")
         else:

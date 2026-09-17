@@ -328,11 +328,7 @@ def emulator_argv(emulator: Path, avd_name: str, console_port: int,
     argv = [str(emulator), "-avd", avd_name, "-port", str(console_port),
             "-no-snapshot", "-no-boot-anim",
             "-adb-path", str(adb_path),
-            "-gpu", "swiftshader_indirect", "-memory", "1536",
-            # -skin 1920x1080 forces a landscape-native framebuffer (see
-            # runner.py start_emulator: portrait-native renders 90 deg off).
-            "-skin", "1920x1080",
-            "-qemu", "-net", "none"]
+            "-gpu", "swiftshader_indirect", "-memory", "1536", "-qemu", "-net", "none"]
     argv.insert(argv.index("-qemu"), "-no-window" if headless else "-fixed-scale")
     return argv
 

@@ -1,0 +1,381 @@
+{
+  "mode": "plan-only",
+  "manifest": [
+    {
+      "source": "run-jcs2",
+      "destination": "run-jcs2",
+      "kind": "file",
+      "inventory": {
+        "logical_bytes": 114,
+        "allocated_bytes": 4096,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "steam/jcs2-steam-launch.sh",
+      "destination": "steam/jcs2-steam-launch.sh",
+      "kind": "file",
+      "inventory": {
+        "logical_bytes": 3282,
+        "allocated_bytes": 4096,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "linux-launcher/runner.py",
+      "destination": "linux-launcher/runner.py",
+      "kind": "file",
+      "inventory": {
+        "logical_bytes": 48789,
+        "allocated_bytes": 49152,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "linux-launcher/runtime_paths.py",
+      "destination": "linux-launcher/runtime_paths.py",
+      "kind": "file",
+      "inventory": {
+        "logical_bytes": 4144,
+        "allocated_bytes": 8192,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "linux-launcher/controls_settings.py",
+      "destination": "linux-launcher/controls_settings.py",
+      "kind": "file",
+      "inventory": {
+        "logical_bytes": 3296,
+        "allocated_bytes": 4096,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "linux-launcher/audio_config.py",
+      "destination": "linux-launcher/audio_config.py",
+      "kind": "file",
+      "inventory": {
+        "logical_bytes": 857,
+        "allocated_bytes": 4096,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "linux-launcher/jcs2-launcher.sh",
+      "destination": "linux-launcher/jcs2-launcher.sh",
+      "kind": "file",
+      "inventory": {
+        "logical_bytes": 100,
+        "allocated_bytes": 4096,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "linux-launcher/joystick_bridge.py",
+      "destination": "linux-launcher/joystick_bridge.py",
+      "kind": "file",
+      "inventory": {
+        "logical_bytes": 16898,
+        "allocated_bytes": 20480,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "linux-launcher/bridge_side_channel.py",
+      "destination": "linux-launcher/bridge_side_channel.py",
+      "kind": "file",
+      "inventory": {
+        "logical_bytes": 4203,
+        "allocated_bytes": 8192,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "linux-launcher/gamescope_window.py",
+      "destination": "linux-launcher/gamescope_window.py",
+      "kind": "file",
+      "inventory": {
+        "logical_bytes": 10419,
+        "allocated_bytes": 12288,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "linux-launcher/jcs2-controller-linux",
+      "destination": "linux-launcher/jcs2-controller-linux",
+      "kind": "file",
+      "inventory": {
+        "logical_bytes": 5298618,
+        "allocated_bytes": 5300224,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "linux-launcher/jcs2-input-helper.jar",
+      "destination": "linux-launcher/jcs2-input-helper.jar",
+      "kind": "file",
+      "inventory": {
+        "logical_bytes": 3768,
+        "allocated_bytes": 4096,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "linux-launcher/tilt_control/__init__.py",
+      "destination": "linux-launcher/tilt_control/__init__.py",
+      "kind": "file",
+      "inventory": {
+        "logical_bytes": 349,
+        "allocated_bytes": 4096,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "linux-launcher/tilt_control/adapter.py",
+      "destination": "linux-launcher/tilt_control/adapter.py",
+      "kind": "file",
+      "inventory": {
+        "logical_bytes": 11554,
+        "allocated_bytes": 12288,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "linux-launcher/tilt_control/estimator.py",
+      "destination": "linux-launcher/tilt_control/estimator.py",
+      "kind": "file",
+      "inventory": {
+        "logical_bytes": 5642,
+        "allocated_bytes": 8192,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "linux-launcher/tilt_control/motion_reader.py",
+      "destination": "linux-launcher/tilt_control/motion_reader.py",
+      "kind": "file",
+      "inventory": {
+        "logical_bytes": 5763,
+        "allocated_bytes": 8192,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "linux-launcher/tilt_control/settings.py",
+      "destination": "linux-launcher/tilt_control/settings.py",
+      "kind": "file",
+      "inventory": {
+        "logical_bytes": 4626,
+        "allocated_bytes": 8192,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "controller/mapping.json",
+      "destination": "assets/controller/mapping.json",
+      "kind": "file",
+      "inventory": {
+        "logical_bytes": 621,
+        "allocated_bytes": 4096,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator",
+      "destination": "runtime/sdk/emulator",
+      "kind": "tree",
+      "inventory": {
+        "logical_bytes": 859352592,
+        "allocated_bytes": 860213248,
+        "files": 395,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/platform-tools",
+      "destination": "runtime/sdk/platform-tools",
+      "kind": "tree",
+      "inventory": {
+        "logical_bytes": 10642368,
+        "allocated_bytes": 10645504,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/system-images/android-28/google_apis/x86",
+      "destination": "runtime/sdk/system-images/android-28/google_apis/x86",
+      "kind": "tree",
+      "inventory": {
+        "logical_bytes": 2801135886,
+        "allocated_bytes": 2801164288,
+        "files": 16,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "analysis/hardened-runtime-20260910T150000Z/avdhome/hardened_api28.ini",
+      "destination": "state/avd/hardened_api28.ini",
+      "kind": "file",
+      "personal_state": true,
+      "inventory": {
+        "logical_bytes": 173,
+        "allocated_bytes": 4096,
+        "files": 1,
+        "symlinks": []
+      }
+    },
+    {
+      "source": "analysis/hardened-runtime-20260910T150000Z/avdhome/hardened_api28.avd",
+      "destination": "state/avd/hardened_api28.avd",
+      "kind": "tree",
+      "personal_state": true,
+      "inventory": {
+        "logical_bytes": 8151832711,
+        "allocated_bytes": 1750573056,
+        "files": 18,
+        "symlinks": []
+      }
+    }
+  ],
+  "proposed_ini_rewrites": [
+    {
+      "file": "hardened_api28.ini",
+      "key": "path",
+      "current": "/home/deck/Projects/JCS2/analysis/hardened-runtime-20260910T150000Z/avdhome/hardened_api28.avd",
+      "proposed": "<PACKAGE>/state/avd/hardened_api28.avd",
+      "exists": true,
+      "generated": false
+    },
+    {
+      "file": "hardened_api28.avd/config.ini",
+      "key": "image.sysdir.1",
+      "current": "/home/deck/Projects/JCS2/staging/windows-runtime/sdk/system-images/android-28/google_apis/x86/",
+      "proposed": "<PACKAGE>/runtime/sdk/system-images/android-28/google_apis/x86/",
+      "exists": true,
+      "generated": false
+    },
+    {
+      "file": "hardened_api28.avd/hardware-qemu.ini",
+      "key": "disk.cachePartition.path",
+      "current": "/home/deck/Projects/JCS2/analysis/hardened-runtime-20260910T150000Z/avdhome/hardened_api28.avd/cache.img",
+      "proposed": "<PACKAGE>/state/avd/hardened_api28.avd/cache.img",
+      "exists": true,
+      "generated": true
+    },
+    {
+      "file": "hardened_api28.avd/hardware-qemu.ini",
+      "key": "kernel.path",
+      "current": "/home/deck/Projects/JCS2/staging/windows-runtime/sdk/system-images/android-28/google_apis/x86//kernel-ranchu-64",
+      "proposed": "<PACKAGE>/runtime/sdk/system-images/android-28/google_apis/x86//kernel-ranchu-64",
+      "exists": true,
+      "generated": true
+    },
+    {
+      "file": "hardened_api28.avd/hardware-qemu.ini",
+      "key": "disk.ramdisk.path",
+      "current": "/home/deck/Projects/JCS2/staging/windows-runtime/sdk/system-images/android-28/google_apis/x86//ramdisk.img",
+      "proposed": "<PACKAGE>/runtime/sdk/system-images/android-28/google_apis/x86//ramdisk.img",
+      "exists": true,
+      "generated": true
+    },
+    {
+      "file": "hardened_api28.avd/hardware-qemu.ini",
+      "key": "disk.systemPartition.initPath",
+      "current": "/home/deck/Projects/JCS2/staging/windows-runtime/sdk/system-images/android-28/google_apis/x86//system.img",
+      "proposed": "<PACKAGE>/runtime/sdk/system-images/android-28/google_apis/x86//system.img",
+      "exists": true,
+      "generated": true
+    },
+    {
+      "file": "hardened_api28.avd/hardware-qemu.ini",
+      "key": "disk.vendorPartition.initPath",
+      "current": "/home/deck/Projects/JCS2/staging/windows-runtime/sdk/system-images/android-28/google_apis/x86//vendor.img",
+      "proposed": "<PACKAGE>/runtime/sdk/system-images/android-28/google_apis/x86//vendor.img",
+      "exists": true,
+      "generated": true
+    },
+    {
+      "file": "hardened_api28.avd/hardware-qemu.ini",
+      "key": "disk.dataPartition.path",
+      "current": "/home/deck/Projects/JCS2/analysis/hardened-runtime-20260910T150000Z/avdhome/hardened_api28.avd/userdata-qemu.img",
+      "proposed": "<PACKAGE>/state/avd/hardened_api28.avd/userdata-qemu.img",
+      "exists": true,
+      "generated": true
+    },
+    {
+      "file": "hardened_api28.avd/hardware-qemu.ini",
+      "key": "disk.encryptionKeyPartition.path",
+      "current": "/home/deck/Projects/JCS2/analysis/hardened-runtime-20260910T150000Z/avdhome/hardened_api28.avd/encryptionkey.img",
+      "proposed": "<PACKAGE>/state/avd/hardened_api28.avd/encryptionkey.img",
+      "exists": true,
+      "generated": true
+    },
+    {
+      "file": "hardened_api28.avd/hardware-qemu.ini",
+      "key": "android.sdk.root",
+      "current": "/home/deck/Projects/JCS2/analysis/arm-runtime-20260910T010130Z/runtime/sdk",
+      "proposed": "<PACKAGE>/runtime/sdk",
+      "exists": true,
+      "generated": true
+    },
+    {
+      "file": "hardened_api28.avd/hardware-qemu.ini",
+      "key": "android.avd.home",
+      "current": "/home/deck/Projects/JCS2/analysis/hardened-runtime-20260910T150000Z/avdhome",
+      "proposed": "<PACKAGE>/state/avd",
+      "exists": true,
+      "generated": true
+    }
+  ],
+  "qcow_backing_references": [
+    {
+      "file": "cache.img.qcow2",
+      "backing": "cache.img",
+      "exists": true
+    },
+    {
+      "file": "userdata-qemu.img.qcow2",
+      "backing": "userdata-qemu.img",
+      "exists": true
+    },
+    {
+      "file": "encryptionkey.img.qcow2",
+      "backing": "encryptionkey.img",
+      "exists": true
+    }
+  ],
+  "blockers": [
+    "Saved guest must be stopped and copied consistently; this tool does not establish that it is stopped.",
+    "Rewrite persistent AVD paths on a future staged copy; preserve relative QCOW backing pairs and review any external backing references.",
+    "Fresh SteamOS host dependencies and Gaming Mode/touch/save persistence remain unverified."
+  ],
+  "excluded": [
+    "backups/",
+    "unrelated analysis/",
+    "original/private backup contents",
+    "Windows runtime binaries",
+    "APK/bootstrap archives",
+    "development tests and menu overlays"
+  ],
+  "note": "AVD is a personal stateful synthetic guest, not a redistributable pristine image. No files changed."
+}

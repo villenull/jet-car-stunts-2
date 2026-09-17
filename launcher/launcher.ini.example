@@ -1,0 +1,27 @@
+# Copy beside JCS2Launcher.exe as launcher.ini; paths are relative to the EXE.
+sdk_root=sdk
+emulator=sdk\emulator\emulator.exe
+adb=sdk\platform-tools\adb.exe
+avd_name=JCS2-personal
+# Relative, launcher-owned AVD directory; first launch creates it from the staged image.
+avd_dir=state\avd
+adb_port=5040
+emulator_port=5596
+package=com.trueaxis.jetcarstunts2
+# apk1..apk5 are the user-owned original five-split set; omit until staged.
+apk1=assets\original\base.apk
+apk2=assets\original\config.arm64_v8a.apk
+apk3=assets\original\config.xxhdpi.apk
+apk4=assets\original\config.en.apk
+apk5=assets\original\config.ru.apk
+# Optional ordinary helper app (for local billing validation), installed/launched first.
+# helper_apk=assets\helper\lp.apk
+# helper_package=com.example.localbilling
+# Optional synthetic first-start bootstrap; archive/hash are validated before
+# any guest root or restore mutation and replay is marker-gated.
+# bootstrap_archive=assets\bootstrap\synthetic-data.tar
+# bootstrap_sha256=1b10063f1d7160b1cf98e177c27a5f85bc6167423a09fb31af56443d5350b318
+# Optional UHID controller; configure all three together.
+# controller_exe=controller\jcs2-controller.exe
+# controller_helper_jar=controller\jcs2-input-helper.jar
+# controller_mapping=controller\mapping.json

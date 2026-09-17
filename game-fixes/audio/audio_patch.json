@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "target": {
+    "apk": "split_config.armeabi_v7a.apk",
+    "apk_sha256": "d1ceccba8515edcc250f751bcb582bb7276b54a26876e0150e6c6ae73bf2c256",
+    "member": "lib/armeabi-v7a/libtrueaxis.so",
+    "lib_sha256": "bc7fdf9d62b7a2dc33ddd97d67e9f74830aea58aa059104dd97d9cbff408a34d",
+    "lib_size": 2227488
+  },
+  "sites": [
+    {
+      "offset": "0x154a7c",
+      "orig": "4ff7aeea",
+      "patched": "00bf00bf",
+      "context_before": "4cf73ee901202870",
+      "context_after": "03983168081a02bf",
+      "desc": "NOP the 4-byte Thumb `blx SoundEngine_UpdateDoubleBuffer@plt` inside the sound-row toggle callback (static function at 0x154a1c). Removes the proven toggle-time stop+restart crash path."
+    },
+    {
+      "offset": "0x11e318",
+      "orig": "017085f760ee",
+      "patched": "00bf00bf00bf",
+      "context_before": "5a48079978440068",
+      "context_after": "baf1000f05d05648",
+      "desc": "Merged atomic site in Game::LoadOptions: `strb r1,[r0]` (stores loaded sound option into the BSS flag byte) + `blx SoundEngine_UpdateDoubleBuffer@plt` (guarded sound-apply at boot), contiguous under the same cbz r0 guard (LLVM: 11e30e cbz, 11e318 7001, 11e31a f785 ee60 -> plt a3fdc). Merged because the two half-sites are adjacent — separate contexts would overlap each other's patched range and break order-independent verification. Proven necessary: clean exit with HIGH saved crashed the next 3/3 cold launches at startup audio init (same FAST-denied->NULL signature); pm clear boots healthy. With the store skipped the flag stays BSS-zero LOW and the live-restart crash vector is removed."
+    },
+    {
+      "offset": "0x154a1c",
+      "orig": "f0b503af",
+      "patched": "704700bf",
+      "context_before": "70ad09003cad0900",
+      "context_after": "4df8048d84b01f49",
+      "desc": "Sound-row toggle callback entry: `push{r4-r7,lr}; add r7,sp,#0xc` replaced with `bx lr; nop` (immediate return, stack untouched, lr valid via blx dispatch as proven by the sibling callback's normal returns). The tap becomes a safe no-op: flag stays LOW, label stays LOW, engine untouched. Required for truthfulness once the flag is locked LOW."
+    }
+  ],
+  "design": "Force-LOW compatibility mode (both latency modes NOT supported: every live restart toward non-default params crashes on this emulator's FAST-denying AudioFlinger). The 3 sites together lock flag=LOW, labels=LOW, engine=LOW-params via the proven-safe boot path, and remove every live stop+restart except the settings-open inline call (observed safe, left intentionally; see not_touched). Working audible sound is preserved exactly as today; taps on the Sound row become safe no-ops.",
+  "not_touched": [
+    "0x153490 settings-ctor inline Update: observed safe (settings opens cleanly, menu-idle engine), left intentionally per minimal-scope rule",
+    "GetIsLowLatencySound label sites: only 2 callers, never per-frame; labels stay truthful because the flag can no longer leave LOW",
+    "No other blx/call to UpdateDoubleBuffer exists (3 PLT callers total + no direct branches, disassembly sweep)"
+  ],
+  "semantics_after_patch": "Flag is BSS-zero LOW on every boot (LoadOptions store+restart skipped atomically); labels always read LOW; engine always inits LOW params via SoundEngine_Initialise (proven every boot); all three live-restart paths that could run while audio is live are removed or neutered. NOTE: this invalidates the previous deferred-apply claim and the launcher panel sentence 'Sound mode changes take effect after restarting the game' — the panel note must be updated via the tilt owner to state sound is fixed to Low Latency.",
+  "overlap": {
+    "maps_progression_sites": ["0x133046", "0x13D846", "0x13D944", "0x14BFBC", "0x14C10A", "0x14C11C"],
+    "maps_ownership_range": ["0x133014", "0x133024"],
+    "status": "no overlap"
+  },
+  "evidence": "analysis/sound-crash-20260913/CRASH-SUMMARY.md (+ scrubbed logcat/tombstone excerpts, screenshots)",
+  "compose_order": "sound patch applies FIRST to an isolated lib copy; maps owner assembles the APK candidate and re-verifies (orig->sound hash chain)"
+}

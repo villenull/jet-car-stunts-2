@@ -1,0 +1,161 @@
+# JCS2 publication .gitignore — conservative deny-list.
+# Strategy: deny sensitive/large/generated/local-only by pattern AND by tree,
+# then stage ONLY an explicit allowlist with `git add <path>` (never `git add -A`).
+# Nothing is deleted locally; ignored files stay on disk for the owner.
+
+# --- Local-only heavy trees (never publish) ---
+/analysis/
+/staging/
+/backups/
+/dist/
+/tools/
+/runtime/
+/state/
+/assets/
+/luna-inspection-*/
+/opus-review-*/
+androguard.db
+backup.ab
+*.ab
+
+# --- Proprietary / binary game payloads (never publish) ---
+*.apk
+*.apks
+*.xapk
+*.so
+*.so.*
+*.patched
+*.dex
+*.odex
+
+# --- Built binaries / redistributed toolchains (rebuild from source) ---
+*.exe
+*.dll
+*.bin
+*.img
+*.qcow2
+*.o
+*.a
+jcs2-controller-linux
+jcs2-controller-hardened.exe
+JCS2Launcher.exe
+JCS2Launcher.new.exe
+*.jar
+
+# --- Archives / disk images (regenerable or local-only) ---
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.7z
+*.rar
+
+# --- Credentials / key material / private state (never publish) ---
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+*privateDB86*
+**/owneronly/
+**/private-*/
+backups/private-*/
+analysis/private-*/
+analysis/offline-apk-hardening-*/
+*.sqlite
+*.db
+
+# --- Saved guests / AVDs / device state / personal data ---
+*.avd/
+hardened_api28.avd/
+hardened_api28.ini
+hardware-qemu.ini
+userdata-qemu.img
+cache.img
+encryptionkey.img
+*.qcow2
+shortcuts.vdf
+**/userdata/
+**/grid/
+state/
+*.vdisk
+*.snap
+
+# --- Logs / runtime output / machine config ---
+*.log
+**/logs/
+**/run-*/
+analysis/**/logs/
+*.pid
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+.env
+.env.*
+*.local
+
+# --- Python / Go / C++ build outputs ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+dist-info/
+*.egg-info/
+controller/jcs2-controller
+linux-launcher/jcs2-controller-linux
+
+# --- Test output / scratch (regenerable) ---
+launcher/tests/windows-mock/analysis/
+launcher/tests/windows-mock/__pycache__/
+**/prefix-Fresh/
+game-fixes/**/candidate/
+game-fixes/**/candidate-*/
+game-fixes/**/candidate-v3/
+progression-unlock/assets/*.apk
+progression-unlock/assets/*.png
+progression-unlock/assets/*.log
+artwork/steam-proposal/*.zip
+artwork/steam-proposal/revised/*.zip
+artwork/steam-proposal/originals/*.jpg
+artwork/steam-proposal/originals/*.jpeg
+artwork/steam-proposal/originals/*.png
+artwork/steam-proposal/originals/*.webp
+# Approved final master wide-v2 is TRACKED (explicitly added); everything else
+# generated/rejected in this dir stays out:
+artwork/steam-proposal/revised-20260915/wide-generated-master-1833x858.png
+artwork/steam-proposal/revised-20260915/logo-generated-REJECTED-baked-checker-2140x735.png
+artwork/steam-proposal/revised-20260915/logo-generated-REJECTED-v2-baked-2172x724.png
+
+# --- Allowlist mechanism ---
+# Tracked files enter the index ONLY via explicit `git add <path>`
+# (never `git add -A` / `git add .`). This file carries DENIES only —
+# do NOT add `!` negations: a negation placed after a deny would re-include
+# a secret or binary. If a denied pattern ever needs an exception, allowlist
+# the single file with `git add -f <path>` after owner review instead.
+
+# --- Final security denies (MUST stay last in this file) ---
+*.apk
+*.apks
+*.xapk
+*.so
+*.so.*
+*.patched
+*.dex
+*.odex
+*.exe
+*.dll
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+*privateDB86*
+**/owneronly/
+**/private-*/

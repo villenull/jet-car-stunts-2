@@ -1,0 +1,19 @@
+{
+  "source_apk_sha256": "dec90e8171fcf2cec465a582bd30e16cda3a5b739ec215f5d66c474de2fb23b8",
+  "source_lib_sha256": "bc7fdf9d62b7a2dc33ddd97d67e9f74830aea58aa059104dd97d9cbff408a34d",
+  "candidate_apk_sha256": "6c5c594e96a96a4ec2f87f8fc27c0aa4e54cc22473612053e43c38641c0d621e",
+  "candidate_lib_sha256": "e95a643e0d994442c62c63a4418c9aca941086157366735b95519d8a36f1db35",
+  "offsets": [
+    1257542,
+    1300550,
+    1300804,
+    1359804,
+    1360138,
+    1360156
+  ],
+  "changed_bytes": 12,
+  "signature": "JDK v1 verified; Android installation validation pending",
+  "certificate_sha256": "db86a56e9937045184a3b5b8e364e30f5333a30afda12739e11e7178b4ad33ed",
+  "guest_modified": false,
+  "progression_only": true
+}

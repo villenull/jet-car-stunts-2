@@ -1,0 +1,15 @@
+JCS2 input notes (Deck):
+- Menus are touch-only. Native pointer/touch events must reach the main
+  emulator window, which translates them to Android input. No screen detector,
+  synthetic menu taps, D-pad navigation, or menu-highlight overlay is needed.
+- D-pad and A/B are unassigned. START still pauses the game; use the game's
+  visible touch controls to navigate menus and go back.
+- Driving: stick steer, R2 go, L2 reverse, RB boost, LB brake, Y reset,
+  START pause. The Python joystick bridge maps these into the Android helper.
+- In the last Gaming Mode attempt the bridge read Steam's virtual Xbox pad,
+  not the native Deck node used on the desktop. Keep the existing Steam Input
+  configuration for the next test; physical mapping is not yet verified there.
+- The Gamescope window helper hides only the owned emulator toolbar and
+  presents the main game window. It does not read, grab, or inject touch events.
+- User must verify tap accuracy, scrolling, back navigation, and driving in
+  Gaming Mode. Do not claim that offline tests prove physical touch works.

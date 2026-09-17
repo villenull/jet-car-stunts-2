@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "variant": "cycling-guarded-taponly",
+  "target": {
+    "apk": "split_config.armeabi_v7a.apk",
+    "apk_sha256": "d1ceccba8515edcc250f751bcb582bb7276b54a26876e0150e6c6ae73bf2c256",
+    "member": "lib/armeabi-v7a/libtrueaxis.so",
+    "lib_sha256": "bc7fdf9d62b7a2dc33ddd97d67e9f74830aea58aa059104dd97d9cbff408a34d",
+    "lib_size": 2227488
+  },
+  "sites": [
+    {
+      "offset": "0x154a7c",
+      "orig": "4ff7aeea",
+      "patched": "bef0c0bd",
+      "context_before": "4cf73ee901202870",
+      "context_after": "03983168081a02bf",
+      "desc": "blx UpdateDoubleBuffer@plt -> bl.w GUARDED_SHIM@0x213600 (Thumb->Thumb; seed encoder roundtripped). Entry 0x154a1c NOT patched (live flag/label path)."
+    },
+    {
+      "offset": "0x11e318",
+      "orig": "017085f760ee",
+      "patched": "00bf00bf00bf",
+      "context_before": "5a48079978440068",
+      "context_after": "baf1000f05d05648",
+      "desc": "RESTORED proven v3 boot NOP (review N1): LoadOptions never takes the tap shim at boot (wrong registers r4/r5, no UI). Session-only HIGH is explicit, not persistence success. Byte-identical to audio-v3."
+    },
+    {
+      "offset": "0x64",
+      "orig": "fc332100fc332100",
+      "patched": "0037210000372100",
+      "context_before": "0000000000000000",
+      "context_after": "0500000000100000",
+      "desc": "B2: LOAD0 FileSiz/MemSiz 0x2133fc -> 0x213700 (maps shim VAs; file size unchanged; stays clear of LOAD1 file 0x213ba0)."
+    },
+    {
+      "offset": "0x213600",
+      "orig": "zeros",
+      "patched": "shim",
+      "context_before": "0000000000000000",
+      "context_after": "0000000000000000",
+      "desc": "Guarded shim v2 (B1 blx-PLT, B3 PIC replication, B5 retry, B6 SetText fixup). Seed zone 0x213400-0x213600 untouched zeros."
+    }
+  ],
+  "design": "Attempt HIGH honestly, verify before use (player + both queues + start verdict), fall back to LOW with one retry, fix the label via SetText on fallback. Boot stays v3 NOP (session-only HIGH explicit). No engine rewrite: only existing routines called.",
+  "not_touched": [
+    "0x154a1c callback entry: ORIG (live path by not patching)",
+    "0x153490 settings-ctor inline Update: observed safe, left intentionally",
+    "seed zone 0x213400-0x213600: asserted zeros (maps owns pad)",
+    "send/callback deref sites: no in-place guards (B4 parity position)",
+    "panel text: tilt-owned (B6 UI condition needs root coordination)"
+  ],
+  "overlap": {
+    "maps_progression_sites": ["0x133046", "0x13D846", "0x13D944", "0x14BFBC", "0x14C10A", "0x14C11C"],
+    "maps_ownership_range": ["0x133014", "0x133024"],
+    "seed_zone": ["0x213400", "0x213600"],
+    "status": "no overlap"
+  },
+  "evidence": "analysis/release-workers/sound-cycling-followup.md sections 3,7,8,9",
+  "compose_order": "cycling patch applies to an isolated lib copy; APK assembly stays with the canonical maps composer; no live until root slot after tilt"
+}

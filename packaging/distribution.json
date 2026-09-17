@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "title": "Jet Car Stunts 2",
+  "slug": "jet-car-stunts-2",
+  "platform": "linux-x86_64-steamos",
+  "launch_target": "steam/jcs2-steam-launch.sh",
+  "launch_environment": {
+    "JCS2_LAYOUT": "portable"
+  },
+  "release_asset": "jet-car-stunts-2-setup.tar.gz",
+  "release_status": "installer-not-yet-built",
+  "public_payload_policy": "authorized-game-and-artwork; runtime redistribution reviewed separately",
+  "exclude_public": [
+    "personal AVD",
+    "save data",
+    "private backups",
+    "keys",
+    "downloaded Google APIs image"
+  ],
+  "artwork": {
+    "icon": {
+      "path": "steam/artwork/icon.png",
+      "size": [
+        192,
+        192
+      ],
+      "status": "source-icon-copied-unmodified"
+    },
+    "cover": {
+      "path": "steam/artwork/cover.png",
+      "size": [
+        600,
+        900
+      ],
+      "status": "needed"
+    },
+    "hero": {
+      "path": "steam/artwork/hero.png",
+      "size": [
+        3840,
+        1240
+      ],
+      "status": "needed"
+    },
+    "logo": {
+      "path": "steam/artwork/logo.png",
+      "max_size": [
+        1280,
+        720
+      ],
+      "transparent": true,
+      "status": "needed"
+    }
+  },
+  "game_art_permission": "User confirmed redistribution permission in this session, 2026-09-12",
+  "game_payload": {
+    "source": "dist/JCS2-Windows-Personal/assets/game",
+    "status": "candidate signed split set; fresh install and progression selection need verification",
+    "personal_state": "excluded; fresh initialized guest required"
+  }
+}

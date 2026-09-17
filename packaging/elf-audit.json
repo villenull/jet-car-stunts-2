@@ -1,0 +1,2706 @@
+[
+  {
+    "file": "linux-launcher/jcs2-controller-linux",
+    "needed": [
+      "libc.so.6",
+      "libresolv.so.2"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.32",
+      "GLIBC_2.34"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/platform-tools/adb",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.7",
+      "GLIBC_2.8",
+      "GLIBC_2.9",
+      "GLIBC_2.10",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.15",
+      "GLIBC_2.16"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/qsn",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libX11.so.6",
+      "libabseil_dll.so",
+      "libandroid-emu-agents.so",
+      "libandroid-emu-base-logging.so",
+      "libandroid-emu-curl.so",
+      "libandroid-emu-metrics.so",
+      "libandroid-emu-protos.so",
+      "libandroid-emu-tracing.so",
+      "libandroid-webrtc.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libemugl_common.so",
+      "libgcc_s.so.1",
+      "libglib2_linux-x86_64.so",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.7",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/emulator",
+    "needed": [
+      "libX11.so.6",
+      "libabseil_dll.so",
+      "libandroid-emu-agents.so",
+      "libandroid-emu-base-logging.so",
+      "libandroid-emu-curl.so",
+      "libandroid-emu-metrics.so",
+      "libandroid-emu-protos.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libglib2_linux-x86_64.so",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.7",
+      "GLIBC_2.11",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.15"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/netsimd",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libc.so.6",
+      "libdl.so.2",
+      "libm.so.6",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.6",
+      "GLIBC_2.7",
+      "GLIBC_2.9",
+      "GLIBC_2.10",
+      "GLIBC_2.11",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.15",
+      "GLIBC_2.16",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/crashpad_handler",
+    "needed": [
+      "libabseil_dll.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.7",
+      "GLIBC_2.9",
+      "GLIBC_2.14",
+      "GLIBC_2.15",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/nimble_bridge",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libX11.so.6",
+      "libabseil_dll.so",
+      "libandroid-emu-agents.so",
+      "libandroid-emu-base-logging.so",
+      "libandroid-emu-curl.so",
+      "libandroid-emu-metrics.so",
+      "libandroid-emu-protos.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libglib2_linux-x86_64.so",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.6",
+      "GLIBC_2.7",
+      "GLIBC_2.9",
+      "GLIBC_2.10",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.15",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/qemu-img",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libX11.so.6",
+      "libabseil_dll.so",
+      "libandroid-emu-agents.so",
+      "libandroid-emu-base-logging.so",
+      "libandroid-emu-curl.so",
+      "libandroid-emu-metrics.so",
+      "libandroid-emu-protos.so",
+      "libandroid-emu-tracing.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libglib2_linux-x86_64.so",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "librt.so.1",
+      "libtcmalloc_minimal.so.4",
+      "libutil.so.1"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.7",
+      "GLIBC_2.9",
+      "GLIBC_2.10",
+      "GLIBC_2.12",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/emulator-check",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libX11.so.6",
+      "libabseil_dll.so",
+      "libandroid-emu-agents.so",
+      "libandroid-emu-base-logging.so",
+      "libandroid-emu-curl.so",
+      "libandroid-emu-metrics.so",
+      "libandroid-emu-protos.so",
+      "libandroid-emu-tracing.so",
+      "libandroid-webrtc.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libemugl_common.so",
+      "libgcc_s.so.1",
+      "libglib2_linux-x86_64.so",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/crashreport",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libabseil_dll.so",
+      "libandroid-emu-agents.so",
+      "libandroid-emu-base-logging.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.11",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.15"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/mksdcard",
+    "needed": [
+      "libc.so.6"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/bin64/e2fsck",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libc.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.10",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/bin64/fsck.ext4",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libc.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.10",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/bin64/tune2fs",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libc.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.10",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/bin64/resize2fs",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libc.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.10",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/bin64/mkfs.ext4",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libc.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.10",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/libglib2_linux-x86_64.so",
+    "needed": [
+      "libc.so.6"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.7",
+      "GLIBC_2.9",
+      "GLIBC_2.10",
+      "GLIBC_2.14",
+      "GLIBC_2.16",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/libprotobuf.so",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libabseil_dll.so",
+      "libc++.so",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/libandroid-emu-curl.so",
+    "needed": [
+      "libabseil_dll.so",
+      "libandroid-emu-base-logging.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/libandroid-emu-shared.so",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libX11.so.6",
+      "libabseil_dll.so",
+      "libandroid-emu-agents.so",
+      "libandroid-emu-base-logging.so",
+      "libandroid-emu-curl.so",
+      "libandroid-emu-metrics.so",
+      "libandroid-emu-protos.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libglib2_linux-x86_64.so",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.7",
+      "GLIBC_2.10",
+      "GLIBC_2.11",
+      "GLIBC_2.12",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/libgfxstream_backend.so",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libX11.so.6",
+      "libabseil_dll.so",
+      "libandroid-emu-agents.so",
+      "libandroid-emu-base-logging.so",
+      "libandroid-emu-curl.so",
+      "libandroid-emu-metrics.so",
+      "libandroid-emu-protos.so",
+      "libandroid-emu-tracing.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libemugl_common.so",
+      "libgcc_s.so.1",
+      "libglib2_linux-x86_64.so",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.7",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.16"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/libandroid-emu-tracing.so",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libabseil_dll.so",
+      "libc++.so",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/libandroid-emu-agents.so",
+    "needed": [
+      "libabseil_dll.so",
+      "libandroid-emu-base-logging.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/libemugl_common.so",
+    "needed": [
+      "libX11.so.6",
+      "libabseil_dll.so",
+      "libandroid-emu-agents.so",
+      "libandroid-emu-base-logging.so",
+      "libandroid-emu-curl.so",
+      "libandroid-emu-metrics.so",
+      "libandroid-emu-protos.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libglib2_linux-x86_64.so",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/libprotobuf.so.28.4.0",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libabseil_dll.so",
+      "libc++.so",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/libandroid-webrtc.so",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libX11.so.6",
+      "libabseil_dll.so",
+      "libandroid-emu-agents.so",
+      "libandroid-emu-base-logging.so",
+      "libandroid-emu-curl.so",
+      "libandroid-emu-metrics.so",
+      "libandroid-emu-protos.so",
+      "libandroid-emu-tracing.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libemugl_common.so",
+      "libgcc_s.so.1",
+      "libglib2_linux-x86_64.so",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.6",
+      "GLIBC_2.7",
+      "GLIBC_2.9",
+      "GLIBC_2.10",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.15",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/libtcmalloc_minimal.so.4",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/libimage_converter.so",
+    "needed": [
+      "libc.so.6"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/libc++.so",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libc.so.6",
+      "libdl.so.2",
+      "libm.so.6",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.6",
+      "GLIBC_2.14",
+      "GLIBC_2.16",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/libandroid-emu-protos.so",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libabseil_dll.so",
+      "libc++.so",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/libandroid-emu-metrics.so",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libabseil_dll.so",
+      "libandroid-emu-agents.so",
+      "libandroid-emu-base-logging.so",
+      "libandroid-emu-curl.so",
+      "libandroid-emu-protos.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.7",
+      "GLIBC_2.10",
+      "GLIBC_2.11",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.15"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/libandroid-emu-base-logging.so",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libabseil_dll.so",
+      "libc++.so",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/libabseil_dll.so",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libc++.so",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.6",
+      "GLIBC_2.14",
+      "GLIBC_2.16",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/libshadertranslator.so",
+    "needed": [
+      "libc++.so",
+      "libc.so.6",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.4",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/libc++.so.1",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libc.so.6",
+      "libdl.so.2",
+      "libm.so.6",
+      "libpthread.so.0",
+      "librt.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.6",
+      "GLIBC_2.14",
+      "GLIBC_2.16",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/gles_llvmpipe/libEGL.so",
+    "needed": [
+      "libc.so.6",
+      "libgallium-25.2.4.so",
+      "libgbm.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxcb-aemu.so"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.9",
+      "GLIBC_2.10",
+      "GLIBC_2.14",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/gles_llvmpipe/libgallium-25.2.4.so",
+    "needed": [
+      "libLLVM.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxcb-aemu.so"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.6",
+      "GLIBC_2.7",
+      "GLIBC_2.8",
+      "GLIBC_2.9",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/gles_llvmpipe/libGLES_CM.so",
+    "needed": [
+      "libgallium-25.2.4.so"
+    ],
+    "interpreter": [],
+    "glibc_versions": []
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/gles_llvmpipe/libgbm.so",
+    "needed": [
+      "libc.so.6",
+      "libdl.so.2",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.7",
+      "GLIBC_2.14",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/gles_llvmpipe/libGL.so",
+    "needed": [
+      "libc.so.6",
+      "libgallium-25.2.4.so",
+      "libpthread.so.0",
+      "libxcb-aemu.so"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/gles_llvmpipe/libGLESv2.so",
+    "needed": [
+      "libgallium-25.2.4.so"
+    ],
+    "interpreter": [],
+    "glibc_versions": []
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/vulkan/libedit.so.0",
+    "needed": [
+      "libc.so.6",
+      "libncurses.so.6"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/vulkan/glslangValidator",
+    "needed": [
+      "libc.so.6",
+      "libdl.so.2",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/vulkan/libxcb-aemu.so",
+    "needed": [
+      "libc.so.6"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/vulkan/libvulkan_lvp.so",
+    "needed": [
+      "libLLVM.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxcb-aemu.so"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.6",
+      "GLIBC_2.7",
+      "GLIBC_2.8",
+      "GLIBC_2.9",
+      "GLIBC_2.10",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/vulkan/libvk_swiftshader.so",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.6",
+      "GLIBC_2.7",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.16",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/vulkan/libvulkan.so.1",
+    "needed": [
+      "libc.so.6",
+      "libdl.so.2",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.14",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/vulkan/libncurses.so.6",
+    "needed": [
+      "libc.so.6"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/vulkan/libvulkan.so",
+    "needed": [
+      "libc.so.6",
+      "libdl.so.2",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.14",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/vulkan/libxml2.so.2",
+    "needed": [
+      "libc.so.6",
+      "libdl.so.2",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.7",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/vulkan/libLLVM.so",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libc.so.6",
+      "libdl.so.2",
+      "libedit.so.0",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "librt.so.1",
+      "libxml2.so.2",
+      "libz.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.6",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.15",
+      "GLIBC_2.16"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/gles_swiftshader/libEGL.so",
+    "needed": [
+      "libc++.so.1",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/gles_swiftshader/libGLES_CM.so",
+    "needed": [
+      "libc++.so.1",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/gles_swiftshader/libGLESv2.so",
+    "needed": [
+      "libc++.so.1",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/gles_angle/libEGL.so",
+    "needed": [
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.7",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/gles_angle/libvk_swiftshader.so",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.6",
+      "GLIBC_2.7",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/gles_angle/libvulkan.so.1",
+    "needed": [
+      "libc.so.6",
+      "libdl.so.2",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.14",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/gles_angle/libvulkan.so",
+    "needed": [
+      "libc.so.6",
+      "libdl.so.2",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.14",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/gles_angle/libGLESv2.so",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libX11.so.6",
+      "libXext.so.6",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxcb.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.7",
+      "GLIBC_2.14",
+      "GLIBC_2.16",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/gles_llvmpipe/dri/kms_swrast_dri.so",
+    "needed": [
+      "libc.so.6",
+      "libdl.so.2",
+      "libgbm.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/gles_llvmpipe/dri/swrast_dri.so",
+    "needed": [
+      "libc.so.6",
+      "libdl.so.2",
+      "libgbm.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/gles_llvmpipe/dri/libdril_dri.so",
+    "needed": [
+      "libc.so.6",
+      "libdl.so.2",
+      "libgbm.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/gles_llvmpipe/gbm/dri_gbm.so",
+    "needed": [
+      "libc.so.6",
+      "libgallium-25.2.4.so",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/libexec/QtWebEngineProcess",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libQt6NetworkAndroidEmu.so.6",
+      "libQt6PositioningAndroidEmu.so.6",
+      "libQt6QmlAndroidEmu.so.6",
+      "libQt6QmlModelsAndroidEmu.so.6",
+      "libQt6QuickAndroidEmu.so.6",
+      "libQt6WebChannelAndroidEmu.so.6",
+      "libQt6WebEngineCoreAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libxcb-render-util.so.0",
+    "needed": [
+      "libc.so.6",
+      "libxcb-render.so.0",
+      "libxcb.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.4"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libQt6SvgWidgetsAndroidEmu.so.6",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libQt6SvgAndroidEmu.so.6",
+      "libQt6WidgetsAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxkbcommon.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libQt6PositioningAndroidEmu.so.6",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14",
+      "GLIBC_2.29"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libQt6WebEngineCoreAndroidEmu.so.6",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libQt6NetworkAndroidEmu.so.6",
+      "libQt6PositioningAndroidEmu.so.6",
+      "libQt6QmlAndroidEmu.so.6",
+      "libQt6QmlModelsAndroidEmu.so.6",
+      "libQt6QuickAndroidEmu.so.6",
+      "libQt6WebChannelAndroidEmu.so.6",
+      "libX11.so.6",
+      "libXext.so.6",
+      "libXi.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libdbus-1.so.3",
+      "libdl.so.2",
+      "libdrm.so.2",
+      "libexpat.so.1",
+      "libfontconfig.so.1",
+      "libfreetype.so.6",
+      "libgcc_s.so.1",
+      "libjpeg.so.8",
+      "libm.so.6",
+      "libnspr4.so",
+      "libnss3.so",
+      "libnssutil3.so",
+      "libplc4.so",
+      "libplds4.so",
+      "libpng16.so.16",
+      "libpthread.so.0",
+      "libresolv.so.2",
+      "librt.so.1",
+      "libsmime3.so",
+      "libxcb.so.1",
+      "libxkbcommon.so.0",
+      "libxkbfile.so.1",
+      "libz.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.6",
+      "GLIBC_2.7",
+      "GLIBC_2.8",
+      "GLIBC_2.9",
+      "GLIBC_2.10",
+      "GLIBC_2.11",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.16",
+      "GLIBC_2.17",
+      "GLIBC_2.27",
+      "GLIBC_2.28",
+      "GLIBC_2.29",
+      "GLIBC_2.30"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libxcb-cursor.so.0",
+    "needed": [
+      "libc.so.6",
+      "libxcb-image.so.0",
+      "libxcb-render-util.so.0",
+      "libxcb-render.so.0",
+      "libxcb.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.8"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libxkbcommon.so.0",
+    "needed": [
+      "libc.so.6"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.8",
+      "GLIBC_2.14",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libxcb-randr.so.0",
+    "needed": [
+      "libc.so.6",
+      "libxcb.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.4"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libQt6WebEngineWidgetsAndroidEmu.so.6",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libQt6NetworkAndroidEmu.so.6",
+      "libQt6PositioningAndroidEmu.so.6",
+      "libQt6QmlAndroidEmu.so.6",
+      "libQt6QmlModelsAndroidEmu.so.6",
+      "libQt6QuickAndroidEmu.so.6",
+      "libQt6QuickWidgetsAndroidEmu.so.6",
+      "libQt6WebChannelAndroidEmu.so.6",
+      "libQt6WebEngineCoreAndroidEmu.so.6",
+      "libQt6WidgetsAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxkbcommon.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libX11-xcb.so.1",
+    "needed": [],
+    "interpreter": [],
+    "glibc_versions": []
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libQt6CoreAndroidEmu.so.6",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libc++.so.1",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpcre2-16.so.0",
+      "libpthread.so.0",
+      "librt.so.1",
+      "libz.so.1"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.6",
+      "GLIBC_2.7",
+      "GLIBC_2.9",
+      "GLIBC_2.14",
+      "GLIBC_2.16",
+      "GLIBC_2.17",
+      "GLIBC_2.25",
+      "GLIBC_2.28",
+      "GLIBC_2.29",
+      "GLIBC_2.30"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libxcb-xfixes.so.0",
+    "needed": [
+      "libc.so.6",
+      "libxcb.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.4"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libfontconfig.so.1",
+    "needed": [
+      "libc.so.6",
+      "libexpat.so.1",
+      "libfreetype.so.6",
+      "libpthread.so.0",
+      "libuuid.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.7",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libxkbcommon-x11.so.0",
+    "needed": [
+      "libc.so.6",
+      "libxcb-xkb.so.1",
+      "libxcb.so.1",
+      "libxkbcommon.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.4",
+      "GLIBC_2.17"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libQt6QmlAndroidEmu.so.6",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6NetworkAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.14",
+      "GLIBC_2.29"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libxcb-icccm.so.4",
+    "needed": [
+      "libc.so.6",
+      "libxcb.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libQt6XcbQpaAndroidEmu.so.6",
+    "needed": [
+      "libICE.so.6",
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libSM.so.6",
+      "libX11-xcb.so.1",
+      "libX11.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxcb-cursor.so.0",
+      "libxcb-icccm.so.4",
+      "libxcb-image.so.0",
+      "libxcb-keysyms.so.1",
+      "libxcb-randr.so.0",
+      "libxcb-render-util.so.0",
+      "libxcb-render.so.0",
+      "libxcb-shape.so.0",
+      "libxcb-shm.so.0",
+      "libxcb-sync.so.1",
+      "libxcb-xfixes.so.0",
+      "libxcb-xkb.so.1",
+      "libxcb.so.1",
+      "libxkbcommon-x11.so.0",
+      "libxkbcommon.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libxcb-util.so.1",
+    "needed": [
+      "libc.so.6",
+      "libxcb.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.4",
+      "GLIBC_2.8"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libQt6QuickAndroidEmu.so.6",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libQt6NetworkAndroidEmu.so.6",
+      "libQt6QmlAndroidEmu.so.6",
+      "libQt6QmlModelsAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxkbcommon.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.14",
+      "GLIBC_2.27",
+      "GLIBC_2.29"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libjpeg.so.8",
+    "needed": [
+      "libc.so.6"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.7",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libxcb-image.so.0",
+    "needed": [
+      "libc.so.6",
+      "libxcb-shm.so.0",
+      "libxcb-util.so.1",
+      "libxcb.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libxcb-xkb.so.1",
+    "needed": [
+      "libc.so.6",
+      "libxcb.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.4",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libQt6NetworkAndroidEmu.so.6",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libz.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.7",
+      "GLIBC_2.10",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libxcb-shape.so.0",
+    "needed": [
+      "libc.so.6",
+      "libxcb.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.4"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libxcb-sync.so.1",
+    "needed": [
+      "libc.so.6",
+      "libxcb.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.4",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libQt6WidgetsAndroidEmu.so.6",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxkbcommon.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14",
+      "GLIBC_2.29"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libQt6QmlModelsAndroidEmu.so.6",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6NetworkAndroidEmu.so.6",
+      "libQt6QmlAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libxcb-render.so.0",
+    "needed": [
+      "libc.so.6",
+      "libxcb.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.4",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libxcb-keysyms.so.1",
+    "needed": [
+      "libc.so.6",
+      "libxcb.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libQt6SvgAndroidEmu.so.6",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxkbcommon.so.0",
+      "libz.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libXdmcp.so.6",
+    "needed": [
+      "libbsd.so.0",
+      "libc.so.6"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.4"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libpcre2-16.so.0",
+    "needed": [
+      "libc.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libQt6GuiAndroidEmu.so.6",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6DBusAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libfontconfig.so.1",
+      "libfreetype.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpng16.so.16",
+      "libpthread.so.0",
+      "libxkbcommon.so.0",
+      "libz.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.7",
+      "GLIBC_2.14",
+      "GLIBC_2.27",
+      "GLIBC_2.29"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libxcb-shm.so.0",
+    "needed": [
+      "libc.so.6",
+      "libxcb.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.4"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libXau.so.6",
+    "needed": [
+      "libc.so.6"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libfreetype.so.6",
+    "needed": [
+      "libc.so.6",
+      "libpng16.so.16",
+      "libz.so.1"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.11",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libQt6WebChannelAndroidEmu.so.6",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6NetworkAndroidEmu.so.6",
+      "libQt6QmlAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libQt6DBusAndroidEmu.so.6",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libdbus-1.so.3",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libQt6WebSocketsAndroidEmu.so.6",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6NetworkAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/lib/libQt6QuickWidgetsAndroidEmu.so.6",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libQt6NetworkAndroidEmu.so.6",
+      "libQt6QmlAndroidEmu.so.6",
+      "libQt6QmlModelsAndroidEmu.so.6",
+      "libQt6QuickAndroidEmu.so.6",
+      "libQt6WidgetsAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxkbcommon.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/plugins/imageformats/libqwebpAndroidEmu.so",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14",
+      "GLIBC_2.29"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/plugins/imageformats/libqtgaAndroidEmu.so",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/plugins/imageformats/libqgifAndroidEmu.so",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxkbcommon.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/plugins/imageformats/libqsvgAndroidEmu.so",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libQt6SvgAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/plugins/imageformats/libqicnsAndroidEmu.so",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/plugins/imageformats/libqjpegAndroidEmu.so",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libjpeg.so.8",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxkbcommon.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/plugins/imageformats/libqwbmpAndroidEmu.so",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/plugins/imageformats/libqtiffAndroidEmu.so",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libtiff.so.5"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/plugins/imageformats/libqicoAndroidEmu.so",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/plugins/platforminputcontexts/libcomposeplatforminputcontextpluginAndroidEmu.so",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxkbcommon.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/plugins/platforminputcontexts/libibusplatforminputcontextpluginAndroidEmu.so",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6DBusAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxkbcommon.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/plugins/platforms/libqoffscreenAndroidEmu.so",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxkbcommon.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/plugins/platforms/libqlinuxfbAndroidEmu.so",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libdrm.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxkbcommon.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.7",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/plugins/platforms/libqminimalAndroidEmu.so",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libfreetype.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxkbcommon.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/plugins/platforms/libqxcbAndroidEmu.so",
+    "needed": [
+      "libICE.so.6",
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libQt6XcbQpaAndroidEmu.so.6",
+      "libSM.so.6",
+      "libX11-xcb.so.1",
+      "libX11.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libdl.so.2",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxcb-cursor.so.0",
+      "libxcb-icccm.so.4",
+      "libxcb-image.so.0",
+      "libxcb-keysyms.so.1",
+      "libxcb-randr.so.0",
+      "libxcb-render-util.so.0",
+      "libxcb-render.so.0",
+      "libxcb-shape.so.0",
+      "libxcb-shm.so.0",
+      "libxcb-sync.so.1",
+      "libxcb-xfixes.so.0",
+      "libxcb-xkb.so.1",
+      "libxcb.so.1",
+      "libxkbcommon-x11.so.0",
+      "libxkbcommon.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/plugins/platforms/libqvncAndroidEmu.so",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libQt6NetworkAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxkbcommon.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/lib64/qt/plugins/iconengines/libqsvgiconAndroidEmu.so",
+    "needed": [
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libQt6SvgAndroidEmu.so.6",
+      "libc++.so.1",
+      "libc.so.6",
+      "libgcc_s.so.1",
+      "libm.so.6",
+      "libpthread.so.0",
+      "libxkbcommon.so.0"
+    ],
+    "interpreter": [],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.14"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/qemu/linux-x86_64/qemu-system-aarch64-headless",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libX11.so.6",
+      "libabseil_dll.so",
+      "libandroid-emu-agents.so",
+      "libandroid-emu-base-logging.so",
+      "libandroid-emu-curl.so",
+      "libandroid-emu-metrics.so",
+      "libandroid-emu-protos.so",
+      "libandroid-emu-tracing.so",
+      "libandroid-webrtc.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libemugl_common.so",
+      "libgcc_s.so.1",
+      "libglib2_linux-x86_64.so",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "librt.so.1",
+      "libtcmalloc_minimal.so.4",
+      "libutil.so.1"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.7",
+      "GLIBC_2.9",
+      "GLIBC_2.10",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.15"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/qemu/linux-x86_64/qemu-system-i386",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libQt6NetworkAndroidEmu.so.6",
+      "libQt6SvgAndroidEmu.so.6",
+      "libQt6SvgWidgetsAndroidEmu.so.6",
+      "libQt6WebChannelAndroidEmu.so.6",
+      "libQt6WebEngineCoreAndroidEmu.so.6",
+      "libQt6WebEngineWidgetsAndroidEmu.so.6",
+      "libQt6WebSocketsAndroidEmu.so.6",
+      "libQt6WidgetsAndroidEmu.so.6",
+      "libX11.so.6",
+      "libabseil_dll.so",
+      "libandroid-emu-agents.so",
+      "libandroid-emu-base-logging.so",
+      "libandroid-emu-curl.so",
+      "libandroid-emu-metrics.so",
+      "libandroid-emu-protos.so",
+      "libandroid-emu-tracing.so",
+      "libandroid-webrtc.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libemugl_common.so",
+      "libgcc_s.so.1",
+      "libglib2_linux-x86_64.so",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "libpulse.so.0",
+      "librt.so.1",
+      "libtcmalloc_minimal.so.4",
+      "libutil.so.1"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.7",
+      "GLIBC_2.9",
+      "GLIBC_2.10",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.15"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/qemu/linux-x86_64/qemu-system-armel-headless",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libX11.so.6",
+      "libabseil_dll.so",
+      "libandroid-emu-agents.so",
+      "libandroid-emu-base-logging.so",
+      "libandroid-emu-curl.so",
+      "libandroid-emu-metrics.so",
+      "libandroid-emu-protos.so",
+      "libandroid-emu-tracing.so",
+      "libandroid-webrtc.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libemugl_common.so",
+      "libgcc_s.so.1",
+      "libglib2_linux-x86_64.so",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "librt.so.1",
+      "libtcmalloc_minimal.so.4",
+      "libutil.so.1"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.7",
+      "GLIBC_2.9",
+      "GLIBC_2.10",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.15"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64-headless",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libX11.so.6",
+      "libabseil_dll.so",
+      "libandroid-emu-agents.so",
+      "libandroid-emu-base-logging.so",
+      "libandroid-emu-curl.so",
+      "libandroid-emu-metrics.so",
+      "libandroid-emu-protos.so",
+      "libandroid-emu-tracing.so",
+      "libandroid-webrtc.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libemugl_common.so",
+      "libgcc_s.so.1",
+      "libglib2_linux-x86_64.so",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "librt.so.1",
+      "libtcmalloc_minimal.so.4",
+      "libutil.so.1"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.7",
+      "GLIBC_2.9",
+      "GLIBC_2.10",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.15"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/qemu/linux-x86_64/qemu-system-aarch64",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libQt6NetworkAndroidEmu.so.6",
+      "libQt6SvgAndroidEmu.so.6",
+      "libQt6SvgWidgetsAndroidEmu.so.6",
+      "libQt6WebChannelAndroidEmu.so.6",
+      "libQt6WebEngineCoreAndroidEmu.so.6",
+      "libQt6WebEngineWidgetsAndroidEmu.so.6",
+      "libQt6WebSocketsAndroidEmu.so.6",
+      "libQt6WidgetsAndroidEmu.so.6",
+      "libX11.so.6",
+      "libabseil_dll.so",
+      "libandroid-emu-agents.so",
+      "libandroid-emu-base-logging.so",
+      "libandroid-emu-curl.so",
+      "libandroid-emu-metrics.so",
+      "libandroid-emu-protos.so",
+      "libandroid-emu-tracing.so",
+      "libandroid-webrtc.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libemugl_common.so",
+      "libgcc_s.so.1",
+      "libglib2_linux-x86_64.so",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "libpulse.so.0",
+      "librt.so.1",
+      "libtcmalloc_minimal.so.4",
+      "libutil.so.1"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.7",
+      "GLIBC_2.9",
+      "GLIBC_2.10",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.15"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libQt6NetworkAndroidEmu.so.6",
+      "libQt6SvgAndroidEmu.so.6",
+      "libQt6SvgWidgetsAndroidEmu.so.6",
+      "libQt6WebChannelAndroidEmu.so.6",
+      "libQt6WebEngineCoreAndroidEmu.so.6",
+      "libQt6WebEngineWidgetsAndroidEmu.so.6",
+      "libQt6WebSocketsAndroidEmu.so.6",
+      "libQt6WidgetsAndroidEmu.so.6",
+      "libX11.so.6",
+      "libabseil_dll.so",
+      "libandroid-emu-agents.so",
+      "libandroid-emu-base-logging.so",
+      "libandroid-emu-curl.so",
+      "libandroid-emu-metrics.so",
+      "libandroid-emu-protos.so",
+      "libandroid-emu-tracing.so",
+      "libandroid-webrtc.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libemugl_common.so",
+      "libgcc_s.so.1",
+      "libglib2_linux-x86_64.so",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "libpulse.so.0",
+      "librt.so.1",
+      "libtcmalloc_minimal.so.4",
+      "libutil.so.1"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.7",
+      "GLIBC_2.9",
+      "GLIBC_2.10",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.15"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/qemu/linux-x86_64/qemu-system-armel",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libQt6CoreAndroidEmu.so.6",
+      "libQt6GuiAndroidEmu.so.6",
+      "libQt6NetworkAndroidEmu.so.6",
+      "libQt6SvgAndroidEmu.so.6",
+      "libQt6SvgWidgetsAndroidEmu.so.6",
+      "libQt6WebChannelAndroidEmu.so.6",
+      "libQt6WebEngineCoreAndroidEmu.so.6",
+      "libQt6WebEngineWidgetsAndroidEmu.so.6",
+      "libQt6WebSocketsAndroidEmu.so.6",
+      "libQt6WidgetsAndroidEmu.so.6",
+      "libX11.so.6",
+      "libabseil_dll.so",
+      "libandroid-emu-agents.so",
+      "libandroid-emu-base-logging.so",
+      "libandroid-emu-curl.so",
+      "libandroid-emu-metrics.so",
+      "libandroid-emu-protos.so",
+      "libandroid-emu-tracing.so",
+      "libandroid-webrtc.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libemugl_common.so",
+      "libgcc_s.so.1",
+      "libglib2_linux-x86_64.so",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "libpulse.so.0",
+      "librt.so.1",
+      "libtcmalloc_minimal.so.4",
+      "libutil.so.1"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.7",
+      "GLIBC_2.9",
+      "GLIBC_2.10",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.15"
+    ]
+  },
+  {
+    "file": "analysis/arm-runtime-20260910T010130Z/runtime/sdk/emulator/qemu/linux-x86_64/qemu-system-i386-headless",
+    "needed": [
+      "ld-linux-x86-64.so.2",
+      "libX11.so.6",
+      "libabseil_dll.so",
+      "libandroid-emu-agents.so",
+      "libandroid-emu-base-logging.so",
+      "libandroid-emu-curl.so",
+      "libandroid-emu-metrics.so",
+      "libandroid-emu-protos.so",
+      "libandroid-emu-tracing.so",
+      "libandroid-webrtc.so",
+      "libc++.so",
+      "libc.so.6",
+      "libdl.so.2",
+      "libemugl_common.so",
+      "libgcc_s.so.1",
+      "libglib2_linux-x86_64.so",
+      "libm.so.6",
+      "libprotobuf.so.28.4.0",
+      "libpthread.so.0",
+      "librt.so.1",
+      "libtcmalloc_minimal.so.4",
+      "libutil.so.1"
+    ],
+    "interpreter": [
+      "/lib64/ld-linux-x86-64.so.2"
+    ],
+    "glibc_versions": [
+      "GLIBC_2.2",
+      "GLIBC_2.3",
+      "GLIBC_2.4",
+      "GLIBC_2.7",
+      "GLIBC_2.9",
+      "GLIBC_2.10",
+      "GLIBC_2.12",
+      "GLIBC_2.14",
+      "GLIBC_2.15"
+    ]
+  }
+]

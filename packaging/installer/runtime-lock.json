@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "comment": "Pinned first-setup downloads. Every archive is verified by size and SHA-256 before extraction. Values were checked on 2026-09-12 against the archives used by the tested API28 runtime and the official repository manifests.",
+  "components": [
+    {
+      "id": "python",
+      "purpose": "Launcher and settings panel interpreter with bundled Tcl/Tk 9.0; independent of host Python",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260901/cpython-3.12.14%2B20260901-x86_64-unknown-linux-gnu-install_only.tar.gz",
+      "filename": "cpython-3.12.14+20260901-x86_64-unknown-linux-gnu-install_only.tar.gz",
+      "size": 111368545,
+      "sha256": "936c246dfdbbfa7cb22dd01814a21f582a892689fae96b06071a5e433baffa22",
+      "format": "tar.gz",
+      "top": "python",
+      "dest": "runtime/python",
+      "required_files": ["bin/python3", "lib/libtcl9.0.so", "lib/libtcl9tk9.0.so"],
+      "license": {
+        "id": "python-build-standalone",
+        "requires_acceptance": false,
+        "text": "licenses/cpython-3.12-LICENSE.txt",
+        "notes": "CPython PSF license; bundled Tcl/Tk (Tcl license) and statically linked X11 (MIT). Distribution metadata: https://github.com/astral-sh/python-build-standalone"
+      },
+      "verification": "2026-09-12: exact archive extracted; tkinter TkVersion/TclVersion 9.0 imported under env -i; libtcl9tk9.0.so has no libX11 DT_NEEDED; highest GLIBC symbol 2.17"
+    },
+    {
+      "id": "platform-tools",
+      "purpose": "adb",
+      "url": "https://dl.google.com/android/repository/platform-tools_r37.0.1-linux.zip",
+      "filename": "platform-tools_r37.0.1-linux.zip",
+      "size": 9054187,
+      "sha256": "d230f13842f60f782a8645f9c813f8f845bf36089ea7289f28c48f17979313f1",
+      "sha1": "477254aa5f903c15cf51001717bdf347fb6b53e0",
+      "format": "zip",
+      "top": "platform-tools",
+      "dest": "runtime/sdk/platform-tools",
+      "required_files": ["adb"],
+      "license": {"id": "android-sdk-license", "requires_acceptance": true, "text": "licenses/android-sdk-license.txt"},
+      "verification": "2026-09-12: versioned URL bytes equal the tested platform-tools-latest archive; adb identical to the tested runtime; sha1/size match repository2-1.xml"
+    },
+    {
+      "id": "emulator",
+      "purpose": "Android Emulator 37.1.11 (build 15917651), complete tree",
+      "url": "https://dl.google.com/android/repository/emulator-linux_x64-15917651.zip",
+      "filename": "emulator-linux_x64-15917651.zip",
+      "size": 334378080,
+      "sha256": "95771e0ae431897b2a4bd2d97fa095f29a8b0624a7b216baf529f9306161c266",
+      "sha1": "1b1f78891abf8ec268264356e1365c25519e8379",
+      "format": "zip",
+      "top": "emulator",
+      "dest": "runtime/sdk/emulator",
+      "required_files": ["emulator", "qemu-img"],
+      "license": {"id": "android-sdk-license", "requires_acceptance": true, "text": "licenses/android-sdk-license.txt"},
+      "verification": "2026-09-12: local archive of the tested runtime; sha1/size match repository2-1.xml"
+    },
+    {
+      "id": "system-image",
+      "purpose": "system-images;android-28;google_apis;x86 revision 12 with ARM translation",
+      "url": "https://dl.google.com/android/repository/sys-img/google_apis/x86-28_r12.zip",
+      "filename": "x86-28_r12.zip",
+      "size": 994434707,
+      "sha256": "5c5473ca8f214425106fa957e6648068ad949e7cadce3cc0e16549721bfdad3b",
+      "sha1": "e0541ac9b783ab91a00054e133bda340a2b9c757",
+      "format": "zip",
+      "top": "x86",
+      "dest": "runtime/sdk/system-images/android-28/google_apis/x86",
+      "required_files": ["system.img", "vendor.img", "ramdisk.img", "kernel-ranchu-64", "userdata.img", "encryptionkey.img", "source.properties"],
+      "license": {"id": "android-sdk-arm-dbt-license", "requires_acceptance": true, "text": "licenses/android-sdk-arm-dbt-license.txt"},
+      "verification": "2026-09-12: local archive of the tested runtime; sha1/size match sys-img/google_apis/sys-img2-1.xml"
+    }
+  ]
+}

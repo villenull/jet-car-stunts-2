@@ -1,0 +1,27 @@
+{
+  "cover": {
+    "url": "https://images.igdb.com/igdb/image/upload/t_1080p/co8bem.jpg",
+    "page": "https://gamepasscompare.com/app/61793/jet-car-stunts-2",
+    "transform": "Proportional fit to 600x900 with light gray padding; no cropping of the title."
+  },
+  "hero": {
+    "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple123/v4/5a/c2/54/5ac25404-145c-c3af-dbbc-2902d3a7e58e/pr_source.jpg/1920x1080bb.jpg",
+    "page": "https://apps.apple.com/gb/app/jet-car-stunts-2/id708142626",
+    "transform": "Crop (0,340,1920,960) from 1920x1080 to 1920x620. No resizing."
+  },
+  "logo_and_header": {
+    "url": "https://trueaxis.com/jcs2logo.png",
+    "page": "https://trueaxis.com/jetcarstunts2.html",
+    "transform": "Proportional resizing; header adds a solid dark canvas. Logo retains alpha."
+  },
+  "icons": {
+    "url": "https://is1-ssl.mzstatic.com/image/thumb/Purple114/v4/c8/0a/8d/c80a8d1b-c511-b503-e27b-c8bd7ef400ba/AppIcon-0-0-1x_U007emarketing-0-0-0-4-85-220.png/512x512bb.jpg",
+    "page": "https://apps.apple.com/gb/app/jet-car-stunts-2/id708142626",
+    "transform": "512px original retained; smaller icon downscaled proportionally."
+  },
+  "alternate_header": {
+    "url": "https://trueaxis.com/jcs2titlebig.jpg",
+    "page": "https://trueaxis.com/jetcarstunts2.html",
+    "transform": "Proportional fit with solid dark padding."
+  }
+}

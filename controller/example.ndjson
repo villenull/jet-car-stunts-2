@@ -1,0 +1,5 @@
+{"type":"device","connected":true,"t_ms":0}
+{"type":"button","key":"A","action":"down","t_ms":10}
+{"type":"button","key":"A","action":"up","t_ms":100}
+{"type":"axis","axis":"LX","value":0.5,"t_ms":110}
+{"type":"axis","axis":"LX","value":0,"t_ms":200}

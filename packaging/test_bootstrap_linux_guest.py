@@ -43,7 +43,31 @@ def snapshot(root: Path) -> dict:
     return {str(p): p.read_bytes() for p in sorted(root.rglob('*')) if p.is_file()}
 
 
+def make_monolith_fixture(root: Path, name: str = 'signed-monolith.apk') -> dict:
+    fx = make_fixture(root)
+    for split in SPLITS:
+        (fx['apks'] / split).unlink()
+    (fx['apks'] / name).write_bytes(b'monolith-payload')
+    return fx
+
+
 class ConfigValidationTests(unittest.TestCase):
+    def test_monolith_single_apk_accepted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fx = make_monolith_fixture(Path(tmp))
+            cfg = bootstrap.load_config(bootstrap.parse_args(base_args(fx)))
+            self.assertEqual([p.name for p in cfg.split_paths],
+                             ['signed-monolith.apk'])
+            self.assertEqual(len(cfg.apk_hashes), 1)
+
+    def test_monolith_extra_apk_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fx = make_monolith_fixture(Path(tmp))
+            (fx['apks'] / 'other.apk').write_bytes(b'extra')
+            with self.assertRaises(bootstrap.BootstrapError) as ctx:
+                bootstrap.load_config(bootstrap.parse_args(base_args(fx)))
+            self.assertEqual(ctx.exception.code, 2)
+
     def test_five_splits_required_exact(self):
         with tempfile.TemporaryDirectory() as tmp:
             fx = make_fixture(Path(tmp))

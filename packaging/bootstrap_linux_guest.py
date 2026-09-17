@@ -53,6 +53,10 @@ EXPECTED_SPLITS = (
     "split_config.es.apk",
     "split_config.xhdpi.apk",
 )
+# Monolithic single-APK installs (the new pristine
+# com.trueaxis.jetcarstunts2.apk) carry every density/ABI in one file.
+# The collector below accepts EXACTLY the 5 legacy splits OR exactly one
+# .apk (any name); install_argv picks install-multiple vs install.
 HELPER_REMOTE_PATH = "/data/local/tmp/jcs2-input-helper.jar"  # controller/helper.go
 IMAGE_REL = Path("system-images/android-28/google_apis/x86")
 DEFAULT_ADB_PORT = 5038  # linux-launcher/runner.py ADB_PORT
@@ -142,16 +146,25 @@ def serial_for(console_port: int) -> str:
 
 
 def collect_split_paths(apks_dir: Path) -> list[Path]:
-    """Require EXACTLY the 5 known splits; extras or gaps are refused."""
+    """Require EXACTLY the 5 known splits OR exactly one monolith .apk.
+
+    Monolith mode: a single .apk of any name (e.g. signed-monolith.apk);
+    extras or gaps are refused in both modes.
+    """
     if not apks_dir.is_dir():
         raise BootstrapError(EXIT_CONFIG, f"apks dir is not a directory: {apks_dir}")
     found = sorted(p.name for p in apks_dir.iterdir()
                    if p.is_file() and p.suffix == ".apk")
+    if len(found) == 1:
+        single = apks_dir / found[0]
+        if not single.is_file():
+            raise BootstrapError(EXIT_CONFIG, f"apk is not a regular file: {single}")
+        return [single]
     if found != sorted(EXPECTED_SPLITS):
         raise BootstrapError(
             EXIT_CONFIG,
-            f"apks dir must contain exactly the 5 splits {list(EXPECTED_SPLITS)}; "
-            f"found {found}")
+            f"apks dir must contain exactly the 5 splits {list(EXPECTED_SPLITS)} "
+            f"or exactly one monolith .apk; found {found}")
     paths = [apks_dir / name for name in EXPECTED_SPLITS]
     for path in paths:
         if not path.is_file():
@@ -183,10 +196,14 @@ def sha256_file(path: Path) -> str:
 
 def compute_identity(package: str, split_paths: list[Path],
                      helper_jar: Path | None = None) -> tuple[str, list[str], str | None]:
-    """Identity = package + 5 split hashes (+ helper hash), like launcher.cpp state.
+    """Identity = package + apk hashes (+ helper hash), like launcher.cpp state.
 
     Computed BEFORE any mutation; returned as (identity, apk_hashes, helper_hash).
+    Accepts 1 (monolith) or 5 (legacy splits) apk paths.
     """
+    if len(split_paths) not in (1, 5):
+        raise BootstrapError(EXIT_CONFIG,
+                             f"apks must be 1 monolith or 5 splits; got {len(split_paths)}")
     apk_hashes = [sha256_file(p) for p in split_paths]
     helper_hash = sha256_file(helper_jar) if helper_jar is not None else None
     lines = [package, *apk_hashes]
@@ -318,7 +335,12 @@ def emulator_argv(emulator: Path, avd_name: str, console_port: int,
 
 def install_argv(adb: Path, adb_port: int, serial: str,
                  split_paths: list[Path]) -> list[str]:
-    """Exact progression_choice.py form: install-multiple -r --no-streaming + 5 splits."""
+    """Install form: single `install -r --no-streaming` for a monolith APK,
+    else the exact progression_choice.py form for legacy splits:
+    install-multiple -r --no-streaming + 5 splits."""
+    if len(split_paths) == 1:
+        return [*adb_client_base(adb, adb_port, serial),
+                "install", "-r", "--no-streaming", str(split_paths[0])]
     return [*adb_client_base(adb, adb_port, serial),
             "install-multiple", "-r", "--no-streaming",
             *(str(p) for p in split_paths)]
@@ -552,8 +574,8 @@ def render_plan(cfg: BootstrapConfig, space: dict, busy: list[int]) -> str:
         f"execute={cfg.execute}",
         f"package={PACKAGE}",
     ]
-    for name, digest in zip(EXPECTED_SPLITS, cfg.apk_hashes):
-        lines.append(f"sha256 {digest}  {name}")
+    for path, digest in zip(cfg.split_paths, cfg.apk_hashes):
+        lines.append(f"sha256 {digest}  {path.name}")
     if cfg.helper_hash is not None:
         lines.append(f"sha256 {cfg.helper_hash}  helper")
     lines.append(f"estimate_logical_bytes={space['logical_bytes']}")
@@ -830,7 +852,7 @@ def execute_bootstrap(cfg: BootstrapConfig) -> int:
                 capture_output=True, text=True, timeout=180, env=env)
             if install.returncode:
                 raise BootstrapError(EXIT_INSTALL,
-                                     f"install-multiple failed: {(install.stderr or install.stdout).strip()[:500]}")
+                                     f"install failed: {(install.stderr or install.stdout).strip()[:500]}")
             try:
                 state_path.write_text(cfg.identity, encoding="utf-8")
             except OSError as exc:

@@ -9,6 +9,7 @@ instructions as current orders.
 
 Full handoff: [`docs/CONTINUATION.md`](docs/CONTINUATION.md).
 Provisioning + fresh-clone limits: [`docs/SETUP.md`](docs/SETUP.md).
+Restore (2026-09-17, Deck fully wiped — start here): [`docs/RESTORE-2026-09-17.md`](docs/RESTORE-2026-09-17.md).
 
 ## What this repo is
 

@@ -28,7 +28,7 @@ none exists, so no ancestor instructions apply.
 
 | Category | Tracked paths |
 |---|---|
-| Repo config + docs | `.gitignore`, `README.md`, `docs/REPOSITORY-CONTENTS.md`, `docs/CONTINUATION.md`, `docs/SETUP.md` |
+| Repo config + docs | `.gitignore`, `README.md`, `docs/REPOSITORY-CONTENTS.md`, `docs/CONTINUATION.md`, `docs/SETUP.md`, `docs/RESTORE-2026-09-17.md` |
 | Offline test entrypoints | `run-offline-tests.py`, `run-jcs2` |
 | Controller (Go + Java helper source) | `controller/*.go`, `controller/go.mod`, `controller/mapping.json`, `controller/example.ndjson`, `controller/cmd/jcs2-controller/*.go`, `controller/helper-src/Jcs2InputHelper.java`, `controller/*.md` |
 | Windows launcher (source only) | `launcher/launcher.cpp`, `launcher/logic.hpp`, `launcher/build.ps1`, `launcher/prepare-personal-runtime.ps1`, `launcher/launcher.ini.example`, `launcher/README.md`, `launcher/CURRENT-STATUS.md`, `launcher/support/JCS2-Start-and-Collect.cmd`, `launcher/support/Start-and-Collect.ps1`, `launcher/tests/test_launcher.py`, `launcher/tests/logic_test.cpp`, `launcher/tests/windows-mock/run_windows_mock.py`, `launcher/tests/windows-mock/mock_controller.cpp`, `launcher/tests/windows-mock/mock_tool.cpp` |

@@ -168,7 +168,8 @@ class ArgvTests(unittest.TestCase):
                           '-no-snapshot', '-no-boot-anim', '-adb-path', str(adb)])
         self.assertIn('-gpu', argv)
         self.assertEqual(argv[argv.index('-gpu') + 1], 'swiftshader_indirect')
-        self.assertIn('-fixed-scale', argv)
+        self.assertIn('-skin', argv)
+        self.assertEqual(argv[argv.index('-skin') + 1], '1920x1080')
         headless = bootstrap.emulator_argv(emu, 'jcs2-fresh', 5594, adb,
                                            headless=True)
         self.assertIn('-no-window', headless)

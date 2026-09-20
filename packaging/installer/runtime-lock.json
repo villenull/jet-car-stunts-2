@@ -86,6 +86,20 @@
       "required_files": ["system.img", "vendor.img", "ramdisk.img", "kernel-ranchu-64", "userdata.img", "encryptionkey.img", "source.properties"],
       "license": {"id": "android-sdk-arm-dbt-license", "requires_acceptance": true, "text": "licenses/android-sdk-arm-dbt-license.txt"},
       "verification": "2026-09-12: local archive of the tested runtime; sha1/size match sys-img/google_apis/sys-img2-1.xml"
+    },
+    {
+      "id": "platform-28",
+      "purpose": "platforms;android-28 (Android 9) — the pinned emulator refuses to resolve an AVD system path when <sdk>/platforms is absent, so a runtime without this component cannot boot a guest at all (found by the 2026-09-20 fresh-install rehearsal: 'Broken AVD system path')",
+      "url": "https://dl.google.com/android/repository/platform-28_r06.zip",
+      "filename": "platform-28_r06.zip",
+      "size": 75565084,
+      "sha256": "8452dbbf9668a428abb243c4f02a943b7aa83af3cca627629a15c4c09f28e7bd",
+      "format": "zip",
+      "top": "android-9",
+      "dest": "runtime/sdk/platforms/android-28",
+      "required_files": ["android.jar", "source.properties"],
+      "license": {"id": "android-sdk-license", "requires_acceptance": true, "text": "licenses/android-sdk-license.txt"},
+      "verification": "2026-09-20: downloaded from this exact URL and measured (sha256 above, 75565084 bytes); archive top directory is android-9/ because API 28 is Android 9"
     }
   ]
 }

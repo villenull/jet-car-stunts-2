@@ -393,9 +393,24 @@ controller binary `linux-launcher/jcs2-controller-linux` and
   (`sha256 284954ab33259e0125757623132e7e36982d968fb6c22495145bb1b37861e6ef`,
   270 191 252 bytes) matches `runtime-lock.json` and is now durable in two
   places: the backup's `local-mirrors/` and this session's evidence dir (§9.7).
-- Deliberately **not** copied, and not required to restore: `/home/deck/go` and
-  `/home/deck/jdk-21` (redownloadable toolchains), Steam shader caches /
-  `compatdata` and non-JCS2 Steam data (regenerated).
+- **The whole backup is also published as a private GitHub release**, so the
+  recovery material survives even if this workstation dies:
+  <https://github.com/villenull/jet-car-stunts-2/releases/tag/recovery-paused-20260920>
+  — 17 assets, 5 083 081 040 B compressed (12 660 115 501 B uncompressed), max
+  asset 1 048 576 000 B (kept under the 2 GiB limit). Grouped so `secrets` is a
+  single 6 951 B asset: restoring the signing key never needs a 5 GB download.
+  Names are `jcs2-recovery-20260920_<group>.tar.zst.part-NN` (`secrets`, `small`,
+  `payloads`, `local-mirrors`, `archives`, `sdk`, `runtime`, `avd`, `logs`) plus
+  `PARTS.sha256`, `MANIFEST.sha256`, `RESTORE-MAPPING.md`, `SIZE-REPORT.txt`,
+  `HOST-CONFIG-NOTES.md` and `REASSEMBLE.sh`. Verified by re-downloading all 17
+  assets: sizes identical, `sha256sum -c PARTS.sha256` all OK, reassembled and
+  extracted into a clean root where `MANIFEST.sha256` matched byte-for-byte and
+  `sha256sum -c` reported **7 047 OK / 0 mismatches**; symlinks and the 0700/0600
+  secret modes survive. Reassembly is
+  `bash jcs2-recovery-20260920_REASSEMBLE.sh <download-dir> <restore-root>` —
+  GitHub does **not** preserve the executable bit on release assets, so call it
+  through `bash` (or `chmod +x`) or it fails with permission denied. All 17
+  assets contain project-private material: keep the repository private.
 - No secret *value* is recorded in this repo or in any handoff message; only
   paths, modes and public artifact hashes. The backup's secret hashes are in
   `MANIFEST.sha256` inside the backup, deliberately not copied into the repo.
@@ -410,6 +425,7 @@ controller binary `linux-launcher/jcs2-controller-linux` and
 | 4 | Emulator (primary) | **32.1.15 build 10696886**, `emulator-linux_x64-10696886.zip`, size 270 191 252, sha256 `284954ab…e6ef` → `runtime/sdk/emulator` (needs `emulator`, `qemu-img`) | Yes — public dl.google.com, hash-pinned |
 | 5 | Emulator (alternate) | 37.1.11 build 15917651, `role=alternate`, never fetched unless `--include-alternates` | Optional |
 | 6 | System image | `system-images;android-28;google_apis;x86` r12 (`x86-28_r12.zip`), size 994 434 707, sha256 `5c5473ca…dad3b` → `runtime/sdk/system-images/android-28/google_apis/x86` | Yes — public dl.google.com, hash-pinned, ARM-DBT license acceptance |
+| 6a | Android platform | `platforms;android-28` (`platform-28_r06.zip`, archive top `android-9`), size 75 565 084, sha256 `8452dbbf…8e7bd` → `runtime/sdk/platforms/android-28` | Yes — public dl.google.com, hash-pinned. **Required**: without `<sdk>/platforms` the pinned emulator panics with `Broken AVD system path` and no guest can boot (found 2026-09-20) |
 | 7 | Game payload | one signed monolith `*.apk` **or** the five splits, **plus** `jcs2-controller-linux` and `jcs2-input-helper.jar` and `controller/mapping.json`, via `--payload-dir`/`--payload-archive` | **No** — mirrors in §9.4 |
 | 8 | Signing key | needed for any patched/variant rebuild | **No** — Deck `~/.jcs2-signing/`, mirrored in §9.4 |
 | 9 | Guest saves | `userdata-qemu.img.qcow2` under `state/avd/<profile>.avd` | **No** — Deck `state/avd/`, mirrored in §9.4 |
@@ -540,6 +556,17 @@ earlier dirty-tree one, is the reference for this paused state.
   session record and is not corroborated by any artifact reachable from this
   workstation, so treat the GPU path as **not established either way** rather
   than slow by nature. Do not present the lane as GPU-correct.
+- **X display is a hard requirement of the pinned emulator.** Its bundled Qt
+  ships only the `xcb` platform plugin: with no `DISPLAY` it dies with
+  `no Qt platform plugin could be initialized. Available platform plugins are:
+  xcb`, and a `DISPLAY` pointing at a transient Xwayland dies with
+  `X connection to :N broken` (both reproduced 2026-09-20). Stock SteamOS
+  satisfies this in Desktop Mode (Xwayland) and in Gaming Mode (gamescope's
+  Xwayland, exported to the Steam-launched process); a **Wayland-only session
+  cannot run this emulator build at all**. The installer refuses to start
+  without `DISPLAY` and says so.
+- The runtime also needs `<sdk>/platforms/android-28` present; the installer
+  pins `platform-28` in `runtime-lock.json` for that reason (§9.5 row 6a).
 - The **physical Gaming Mode input bridge end-to-end is unverified**; desktop
   gameplay is not proof.
 - No emulator **version probe** exists anywhere: the 32.1.15 pin is enforced

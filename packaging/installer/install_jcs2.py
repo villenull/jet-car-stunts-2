@@ -1280,21 +1280,37 @@ def stage_guest(cfg: InstallerConfig, report: Report) -> None:
 # Stage: smoke test (adb device + emulator + lane).
 # ---------------------------------------------------------------------------
 
-def probe_lane(cfg: InstallerConfig) -> dict:
+def probe_lane(cfg: InstallerConfig, deep: bool = True) -> dict:
+    """Lane health.
+
+    deep=False is for the poll that runs *after* start_lane: the lane owns
+    cfg.adb_port by then, and invoking adb would bring up a competing server
+    that the lane's own preflight immediately reports as "port 5038 is already
+    busy" (the 2026-09-20 rehearsal hit exactly that). The non-deep form is
+    plain TCP until all three ports are open, and only then asks the lane's own
+    adb server for the device.
+    """
     adb = cfg.sdk / "platform-tools" / "adb"
     emulators = owned_processes(cfg.owned_markers, cfg.avd_name, "emulator")
-    # Connect first: bringing up the adb server is what opens cfg.adb_port, so
-    # probing the ports before this reported 5038 closed on a healthy guest.
+    ports = {port: tcp_open(port) for port in (cfg.adb_port, cfg.console_port, cfg.console_port + 1)}
+    lanes = {str(port): ("open" if is_open else "closed") for port, is_open in ports.items()}
+    if not deep and not all(ports.values()):
+        return {
+            "adb_connect": "deferred",
+            "adb_device": "deferred (lane ports not all open yet)",
+            "emulator_pids": [pid for pid, _ in emulators],
+            "lane_ports": lanes,
+            "lane_available": False,
+        }
     connect, state = "skipped", "no-adb"
     if adb.is_file():
-        connect = adb_connect(adb, cfg.adb_port, cfg.serial)
+        connect = adb_connect(adb, cfg.adb_port, cfg.serial) if deep else "not needed (lane server up)"
         state = adb_state(adb, cfg.adb_port, cfg.serial)
-    ports = {port: tcp_open(port) for port in (cfg.adb_port, cfg.console_port, cfg.console_port + 1)}
     return {
         "adb_connect": connect,
         "adb_device": state,
         "emulator_pids": [pid for pid, _ in emulators],
-        "lane_ports": {str(port): ("open" if is_open else "closed") for port, is_open in ports.items()},
+        "lane_ports": lanes,
         "lane_available": state == "device" and all(ports.values()),
     }
 
@@ -1372,7 +1388,8 @@ def stage_smoke(cfg: InstallerConfig, report: Report) -> None:
     deadline = time.monotonic() + cfg.lane_seconds
     last = {}
     while time.monotonic() < deadline:
-        last = probe_lane(cfg)
+        # Non-deep: never let our own probe start an adb server on the lane's port.
+        last = probe_lane(cfg, deep=False)
         if last["lane_available"]:
             break
         if process.poll() is not None:

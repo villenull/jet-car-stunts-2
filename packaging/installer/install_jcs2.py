@@ -1292,25 +1292,38 @@ def probe_lane(cfg: InstallerConfig, deep: bool = True) -> dict:
     """
     adb = cfg.sdk / "platform-tools" / "adb"
     emulators = owned_processes(cfg.owned_markers, cfg.avd_name, "emulator")
-    ports = {port: tcp_open(port) for port in (cfg.adb_port, cfg.console_port, cfg.console_port + 1)}
-    lanes = {str(port): ("open" if is_open else "closed") for port, is_open in ports.items()}
-    if not deep and not all(ports.values()):
+    if not deep:
+        ports = {port: tcp_open(port) for port in (cfg.adb_port, cfg.console_port, cfg.console_port + 1)}
+        lanes = {str(port): ("open" if is_open else "closed") for port, is_open in ports.items()}
+        if not all(ports.values()):
+            return {
+                "adb_connect": "deferred",
+                "adb_device": "deferred (lane ports not all open yet)",
+                "emulator_pids": [pid for pid, _ in emulators],
+                "lane_ports": lanes,
+                "lane_available": False,
+            }
+        state = adb_state(adb, cfg.adb_port, cfg.serial) if adb.is_file() else "no-adb"
         return {
-            "adb_connect": "deferred",
-            "adb_device": "deferred (lane ports not all open yet)",
+            "adb_connect": "not needed (lane server up)",
+            "adb_device": state,
             "emulator_pids": [pid for pid, _ in emulators],
             "lane_ports": lanes,
-            "lane_available": False,
+            "lane_available": state == "device" and all(ports.values()),
         }
+    # Deep probe: connect first, because bringing up the adb server is what
+    # opens cfg.adb_port; probing the ports before that reported 5038 closed on
+    # a healthy guest.
     connect, state = "skipped", "no-adb"
     if adb.is_file():
-        connect = adb_connect(adb, cfg.adb_port, cfg.serial) if deep else "not needed (lane server up)"
+        connect = adb_connect(adb, cfg.adb_port, cfg.serial)
         state = adb_state(adb, cfg.adb_port, cfg.serial)
+    ports = {port: tcp_open(port) for port in (cfg.adb_port, cfg.console_port, cfg.console_port + 1)}
     return {
         "adb_connect": connect,
         "adb_device": state,
         "emulator_pids": [pid for pid, _ in emulators],
-        "lane_ports": lanes,
+        "lane_ports": {str(port): ("open" if is_open else "closed") for port, is_open in ports.items()},
         "lane_available": state == "device" and all(ports.values()),
     }
 

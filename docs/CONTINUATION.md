@@ -80,7 +80,7 @@ accelerometer vectors only; gated sticks never double-drive).
   `python3 linux-launcher/runtime_paths.py --check` — filesystem preflight
   (never boots anything); `./run-jcs2 --headless --input qa` — local QA only
   with explicit flags (not a fresh-clone default).
-- Re-verified 2026-09-20 on this workstation: `OK: 546 unittest cases across
+- Re-verified 2026-09-20 on this workstation: `OK: 547 unittest cases across
   17 suites` (live-controls 30, window-policy 17, runner 86, lifecycle 55,
   tilt 111 +1 skipped, audio-config 10, runtime-paths 7, personal-controls 1,
   bridge-side-channel 20, hud-layout 20, ebadf 16, steam-wrapper 11,
@@ -217,7 +217,7 @@ and re-verify hashes before re-applying.
 
 ## 6. Tested vs unverified (do not relabel)
 
-- Tested offline: full 546 matrix (§3); gate/persist/reconnect/failure semantics;
+- Tested offline: full 547 matrix (§3); gate/persist/reconnect/failure semantics;
   quit watcher streak/reset matrix + hide-never-blocks; packaging/plan +
   resolver checks; installer stage/dry-run + checksum-verification suites;
   Steam VDF/PNG/hash on-disk checks; static llvm + hash
@@ -277,7 +277,7 @@ overridden except where they are quoted as superseded.
   2026-09-18/19/20 session — Gaming Mode work, the installer, the tilt-panel
   removal, the HUD/audio/deck-pad modules — existed only in the workstation
   working tree. It is now committed and pushed as
-  **`9a1b3a0f7546e4c916d459042d1e2a5d1d07beb9`** (fast-forward from `410625e`,
+  **`9a1b3a0f7547e4c916d459042d1e2a5d1d07beb9`** (fast-forward from `410625e`,
   no divergence; `git ls-remote origin refs/heads/main` agrees). §9.2 lists what
   that commit carries and §9.7 records the fresh-clone proof of it. That SHA is
   the *source-content* commit; docs-only commits may sit on top of it, so use
@@ -450,7 +450,7 @@ installer itself (`--allow-network`), so they are not a backup requirement.
 ### 9.6 Restore recipe (no secrets in this file)
 
 1. Clone the private repo at the verified commit; run
-   `python3 run-offline-tests.py` (expect `OK: 546 … 17 suites`).
+   `python3 run-offline-tests.py` (expect `OK: 547 … 17 suites`).
 2. Restore the off-Deck backup sub-trees to the paths in
    `RESTORE-MAPPING.md`, preserving modes (`secrets/` must be restored 0600 in
    a 0700 dir; never into the repo working tree). That mapping also covers the
@@ -521,7 +521,7 @@ payload plus a Deck target, which is why §9.8 and §9.9 stay as they are.
 
 **Post-push verification of the exact commit (same day, log
 `logs/fresh-clone-verify.log`).** `git clone` of the private remote at
-`9a1b3a0f7546e4c916d459042d1e2a5d1d07beb9` (the SHA `ls-remote` reports for
+`9a1b3a0f7547e4c916d459042d1e2a5d1d07beb9` (the SHA `ls-remote` reports for
 `main`, fast-forward from `410625e`, no divergence) gives a tree that contains
 every session file listed in §9.2 — `deck_pad.py`, `hud_layout.py`,
 `qt_settings.py`, `test-hud-layout.py`, `install_jcs2.py`, `setup-jcs2.sh`,
@@ -531,7 +531,7 @@ absent, the emulator pin resolving to 32.1.15 build 10696886 with 37.1.11 as
 `role=alternate`, and no binary or secret-shaped content tracked (the single
 grep hit for secret patterns is this repo's own manifest listing the patterns
 it sweeps for). `python3 run-offline-tests.py` on that clone:
-**`OK: 546 unittest cases across 17 suites`** in 2.3 s. Rebuilding the release
+**`OK: 547 unittest cases across 17 suites`** in 2.3 s. Rebuilding the release
 asset from the **clean** commit gives
 `jet-car-stunts-2-setup.tar.gz` 151 114 bytes / 34 members,
 `payload_commit: 9a1b3a0…`, `tree_dirty: false`,

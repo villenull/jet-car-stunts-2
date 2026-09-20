@@ -46,7 +46,7 @@ reinstall/uninstall the personal guest.
   vs full gas) with the trigger-conflict alternative open.
 - **Quit:** the Sept-14 detection + owned-hide/teardown fix is implemented
   (old real-run root cause already executed in code). Offline matrix re-run
-  2026-09-20 is **546/546 across 17 suites** (`docs/CONTINUATION.md` §3).
+  2026-09-20 is **547/547 across 17 suites** (`docs/CONTINUATION.md` §3).
   Real GamingMode presentation
   (hide → Steam UI, no home flash, ≤ ~8 s emulator exit) is **user-check
   pending**.
@@ -80,7 +80,7 @@ reinstall/uninstall the personal guest.
 
 | Area | Offline-tested | Still live-unverified |
 |---|---|---|
-| TiltDrive gate/router | 546/546 whole offline matrix (`docs/CONTINUATION.md` §3) | unselectable by design 2026-09-18 (sensor-landscape display flip); in-race authority never verified |
+| TiltDrive gate/router | 547/547 whole offline matrix (`docs/CONTINUATION.md` §3) | unselectable by design 2026-09-18 (sensor-landscape display flip); in-race authority never verified |
 | Quit hide/teardown | lifecycle/runner/window suites green | GamingMode presentation |
 | Sound v3 | file/byte guards + prior live PASS on scratch | personal redeploy audible check |
 | Editor SAVE/Select | static llvm + hash guards | whole custom save→list→reopen→restart chain |

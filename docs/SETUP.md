@@ -45,7 +45,7 @@ sources.
 
 | Command | Needs provisioning? | What it proves |
 |---|---|---|
-| `python3 run-offline-tests.py` | No (stdlib + repo) — expect `OK: 546 unittest cases across 17 suites` | offline behavior only; not GamingMode/touch/tilt/audio |
+| `python3 run-offline-tests.py` | No (stdlib + repo) — expect `OK: 547 unittest cases across 17 suites` | offline behavior only; not GamingMode/touch/tilt/audio |
 | `python3 linux-launcher/runtime_paths.py --check` | Yes (SDK/AVD/assets) — fails closed when missing | filesystem preflight only; passing ≠ bootable/self-contained |
 | `python3 packaging/plan.py` | Yes (source tree) — prints JSON report; exit 0 ≠ blockers resolved | read-only inventory + proposed AVD rewrites; copies/repairs nothing |
 | `./packaging/installer/setup-jcs2.sh` (dry-run) | No (stdlib + extracted setup tree) — exit 1 lists the missing pieces | what the installer WOULD do; touches nothing |
@@ -73,7 +73,7 @@ build-tools (javac against `android.jar`, then `d8` dexing for
    `runtime/sdk`), AVD home (`state/avd`, profile `jcs2-fresh`) and signing key:
    owner APK/saves/key only from local holders; platform SDK and language
    toolchains may come from official upstream sources (see §1).
-2. `python3 run-offline-tests.py` → expect 546/546.
+2. `python3 run-offline-tests.py` → expect 547/547.
 3. `python3 linux-launcher/runtime_paths.py --check` → resolve missing paths
    before any launch. The Steam wrapper and the portable lane default to
    `JCS2_LAYOUT=portable` against `state/avd`, `assets` and `state/logs` with the

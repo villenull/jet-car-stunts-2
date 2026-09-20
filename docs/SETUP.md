@@ -29,7 +29,7 @@ Provision the owner game payload, saves, and signing key only from the
 owner's local holders. **Corrected 2026-09-20:** the USB holder this section
 used to name (`backups/usb-20260910T005449Z/`) and the DB86 key material were
 destroyed in the 2026-09-17 Deck wipe. The current holders are the verified
-off-Deck backup at `/home/villenull/Projects/jet-car-stunts-2/.state/jcs2-work-20260920/deck-backup-20260920/` (game payload,
+off-Deck backup at `/home/villenull/.local/share/jcs2-archive-20260920/deck-backup-20260920/` (game payload,
 guest saves, `jcs2fresh` signing key, both emulator SDK trees, runtime and
 lane logs — manifest + mapping in that directory; exact inventory, hashes and
 the full redeploy recipe are in `docs/CONTINUATION.md` §9.4–§9.6) and the

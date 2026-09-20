@@ -869,11 +869,19 @@ def verify_guest_native_libs(cfg: BootstrapConfig, env, timeout: float = 90.0) -
             if all(found.get(name) == digest for name, digest in expected.items()):
                 return
         time.sleep(3)
+    # Capture the guest's own view before anything stops the emulator: the
+    # directory listing plus `pm path` is what tells "never extracted" apart
+    # from "extracted but wrong" from "wrong directory".
+    listing = _run_adb(cfg, env, "shell", "ls", "-l", resolved or "/data/app", timeout=20)
+    pm_path = _run_adb(cfg, env, "shell", "pm", "path", PACKAGE, timeout=20)
+    print(f"native-lib evidence: dir={resolved!r}\n{listing.stdout.strip()}\n"
+          f"pm path: {pm_path.stdout.strip()}", flush=True)
     raise BootstrapError(
         EXIT_INSTALL,
         "guest native libraries do not match the shipped APK; refusing to call this "
         f"install complete (expected {sorted(expected)}, guest has {sorted(found)}); "
-        f"resolved native library directory: {resolved!r}")
+        f"resolved native library directory: {resolved!r}; "
+        f"guest listing: {listing.stdout.strip()[:400]}")
 
 
 def execute_bootstrap(cfg: BootstrapConfig) -> int:

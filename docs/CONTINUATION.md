@@ -792,19 +792,36 @@ tree:
   Omarchy. **Required** host facts are just: `python3 ≥ 3.9`, those coreutils,
   a live X `DISPLAY` for the emulator, writable `/dev/kvm`, ~8 GiB free in
   `$HOME`.
-- **Audit finding, reported not papered over** (confirmed in source by the
-  input owner, who owns the fix): `claim_deck_pad()` logs
-  `stage=deck-pad-claimed` unconditionally (`runner.py:1481`) and cleanup logs
-  `stage=deck-pad-released` unconditionally (`runner.py:1836-1837`), while
-  `deck_pad.claim_pad()` returns an honest no-op state
-  (`mapper_stopped: false`, `lizard_forced: ""`). **Proposed fix, NOT landed**
-  (source work is frozen while the GPU task is parked): emit
-  `stage=deck-pad-claimed` only when `mapper_stopped or lizard_forced`, else
-  `stage=deck-pad-absent` with the full state and a reason; and on cleanup emit
-  `stage=deck-pad-released` only when `mapper_restarted or lizard_restored`,
-  else `stage=deck-pad-unchanged` — plus one focused test feeding the no-op
-  state, leaving existing pad tests (which all feed changed states) untouched.
-  Record it as proposed, not done.
+- **Log-wording caveat only, and deliberately not fixed.** `claim_deck_pad()`
+  logs `stage=deck-pad-claimed` unconditionally (`runner.py:1481`) and cleanup
+  logs `stage=deck-pad-released` unconditionally (`runner.py:1836-1837`), while
+  `deck_pad.claim_pad()` returns an honest no-op state (`mapper_stopped: false`,
+  `lizard_forced: ""`). On a machine with no Omarchy mapper that is **correct
+  behaviour, not a bug**: there is no EVIOCGRAB to release, and stock Steam
+  Input's virtual pad can deliver correct input without one. A logging-only
+  change was proposed and then **rejected by the parent** — it would not fix
+  fresh-SteamOS input, is not a needed installer feature, and pinning the stage
+  text in tests would be padding. Recorded here only as a caveat for whoever
+  reads the log next; `runner.py` is unchanged
+  (`sha256 c12a2477e420bfed0ba43e56cc54a1bf34928eda21600e136d2159c7cb6979b8`).
+- **What the lane's input actually depends on** (source evidence, from the input
+  owner; full write-up in
+  `/home/villenull/jcs2-gm-evidence/gpufix-20260920/STEAMOS-INPUT-DEPENDENCY.md`):
+  a readable `/dev/input/js*` node (logind ACL is enough on this Deck — no extra
+  group), Steam providing and refreshing its **virtual pad** node, and no
+  third-party exclusive grabber on that node. The bridge picks `JCS2_JOYSTICK`
+  if set, else the first usable sorted `/dev/input/js*` that is readable, not a
+  motion sensor, and has a supported map; when nothing is usable it exits 2 with
+  `joystick: no supported readable joystick`, which the runner treats as fatal —
+  a permissions problem fails loudly rather than silently losing input. Because a
+  js node cannot be grabbed, it cannot defend itself: it probes the evdev sibling
+  and prints `joystick: WARNING input is blocked: … will deliver nothing but its
+  open-time state snapshot until it is released (Desktop Mode:
+  deck-input-mapper --grab)`. The proven Gaming Mode lane used Steam's virtual
+  node (`joystick: using /dev/input/js0 layout=xbox`, then
+  `first live event from /dev/input/js0`) with no mapper and no warning, and the
+  bridge reopens that node because Steam tears the virtual pad down and recreates
+  it mid-game.
 - On this workstation — — which has
   no mapper unit and no lizard-mode tool, verified with `ls`/`systemctl` — the
   lane logged `stage=deck-pad-claimed` with `mapper_active_before: false`,
@@ -815,6 +832,11 @@ tree:
   lives in `deck_pad.py`/`runner.py`, which are outside this workstream's
   ownership, so it is recorded here and handed to the renderer/input owner
   rather than edited here.
+- Three input questions that **cannot be answered read-only** and belong with
+  the GPU gate: whether stock SteamOS Desktop Mode routes the pad to the
+  shortcut's virtual node or to desktop keyboard/mouse; whether any stock
+  component grabs it exclusively; and whether a fresh install's ACLs make the
+  nodes readable in both Desktop and Gaming Mode.
 - What remains genuinely unverified on the target: the Gaming Mode input path
   itself. In Gaming Mode the Deck's pad is delivered through Steam's virtual
   input devices and the lane reads `/dev/input/js*`; `steam/README.md` states

@@ -405,12 +405,21 @@ class LaneTests(unittest.TestCase):
                 directory = proc / str(pid)
                 directory.mkdir(parents=True)
                 (directory / "cmdline").write_bytes(b"\x00".join(part.encode() for part in argv) + b"\x00")
+            # A real adb daemon re-execs with argv[0] "adb", so its install is
+            # only visible through /proc/<pid>/exe. 108 is that shape and must
+            # still be recognised as ours.
+            daemon = proc / "108"
+            daemon.mkdir()
+            (daemon / "cmdline").write_bytes(
+                b"\x00".join(part.encode() for part in
+                             ["adb", "-L", "tcp:5038", "fork-server", "server", "--reply-fd", "4"]) + b"\x00")
+            (daemon / "exe").symlink_to(root / "runtime/sdk/platform-tools/adb")
             (proc / "self").mkdir()
             found = installer.owned_processes([root], "jcs2-fresh", "emulator", proc_root=str(proc))
             # /proc order is not defined; compare as a set of pids.
             self.assertEqual(sorted(pid for pid, _ in found), [101, 105])
             servers = installer.owned_processes([root], "jcs2-fresh", "adb-server", proc_root=str(proc))
-            self.assertEqual(sorted(pid for pid, _ in servers), [103, 107])
+            self.assertEqual(sorted(pid for pid, _ in servers), [103, 107, 108])
             self.assertEqual(sorted(pid for pid, _ in installer.owned_processes(
                 [other], "jcs2-fresh", "emulator", proc_root=str(proc))), [102, 106])
 

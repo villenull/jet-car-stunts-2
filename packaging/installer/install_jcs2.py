@@ -455,8 +455,16 @@ def owned_processes(markers, avd_name: str, pattern: str, proc_root: str = "/pro
     markers = [str(marker) for marker in markers]
     matches = []
     for pid, argv in scan_processes(proc_root):
+        # argv alone is not enough: an adb daemon re-execs itself with argv[0]
+        # "adb", losing the install path. /proc/<pid>/exe still points at the
+        # binary inside this install, which is the ownership evidence we want.
+        try:
+            exe = os.readlink(os.path.join(proc_root, str(pid), "exe"))
+        except OSError:
+            exe = ""
+        parts = list(argv) + ([exe] if exe else [])
         if not any(part == marker or part.startswith(marker + os.sep)
-                   for part in argv for marker in markers):
+                   for part in parts for marker in markers):
             continue
         if pattern == "emulator":
             if "-avd" not in argv or avd_name not in argv:

@@ -35,8 +35,8 @@ launcher does not itself relocate the guest or install the game into a fresh AVD
 Personal tilt settings live in the selected log directory as `tilt-settings.json`.
 They are absent on the audited source and omitted from the base manifest; preserve
 that separate personal settings file explicitly if it is created before staging.
-Default steering and pitch both use the left stick. The optional prelaunch touch
-panel (`--control-settings`) also requires Python Tk/Tcl; no toolkit is bundled.
+Default steering and pitch both use the left stick; there is no prelaunch touch
+panel any more.
 
 Source and runtime binaries are separate from the **stateful synthetic AVD**.
 The latter holds the tested personal guest and saved progress and must not be

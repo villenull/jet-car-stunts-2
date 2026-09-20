@@ -71,7 +71,19 @@ import time
 from pathlib import Path
 
 GRAVITY = 9.81
-NEUTRAL_ACCELERATION: tuple[float, float, float] = (0.0, 0.0, GRAVITY)
+# Parked pose: "flat", but with a deliberate ~2 degree roll.
+#
+# A perfectly flat accelerometer (gravity on +Z alone) is AMBIGUOUS for the
+# framework's landscape quarter, so the guest display can flip to the other
+# quarter whenever a rotation is re-evaluated - measured 2026-09-18: a single
+# emulator console `rotate` moved the guest display 1 -> 3 with the display pin
+# in place, and the host render went with it. The roll makes the choice
+# deterministic and uses the same sign convention as the align probe
+# (negative X -> quarter 1), while 2 degrees stays far inside any input dead
+# zone, so the game's own tilt reading remains neutral.
+#   x = -9.81 * sin(2 deg) = -0.34,  z = 9.81 * cos(2 deg) = 9.80  (|v| = 9.81)
+PARKED_ROLL_DEGREES = 2.0
+NEUTRAL_ACCELERATION: tuple[float, float, float] = (-0.34, 0.0, 9.80)
 
 CONSOLE_HOST = "127.0.0.1"
 CONSOLE_PORT = 5594

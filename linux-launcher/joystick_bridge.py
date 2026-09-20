@@ -17,6 +17,7 @@ Side-channel mode (JCS2_BRIDGE_SIDECHANNEL=<fd>):
 """
 
 import array
+import errno
 import fcntl
 import glob
 import json
@@ -29,6 +30,9 @@ import time
 from pathlib import Path
 
 FMT = struct.Struct("IhBB")
+
+# _IOW('E', 0x90, int): the evdev exclusive-grab ioctl (linux/input.h).
+EVIOCGRAB = 0x40044590
 
 # Linux ABS_* constants from /usr/include/linux/input-event-codes.h.  Do not
 # infer these from a particular device's axis ordering.
@@ -108,7 +112,7 @@ BUTTON_CODES = {
     BTN_Y: "Y",
     BTN_TL: "LB",
     BTN_TR: "RB",
-    BTN_SELECT: "VIEW",  # Host settings opener, distinct from mapped START pause.
+    BTN_SELECT: "VIEW",  # Physical SELECT: no guest action; the runner drops it.
     BTN_START: "START",
     BTN_DPAD_UP: "DPAD_UP",
     BTN_DPAD_DOWN: "DPAD_DOWN",
@@ -148,6 +152,60 @@ def device_metadata(path: str | os.PathLike[str]) -> dict[str, str]:
         except OSError:
             pass
     return metadata
+
+
+def evdev_sibling(path: str | os.PathLike[str], root: Path | None = None) -> str | None:
+    """Return the evdev node of the SAME device as a js node, or None.
+
+    js and event handlers of one device sit side by side in the device's sysfs
+    directory (js0 + event7 for the built-in Steam Deck pad), so the evdev node
+    is read from the js node's own entry instead of guessed.
+    """
+    directory = (root or SYSFS_INPUT_ROOT) / Path(path).name / "device"
+    try:
+        names = [entry.name for entry in directory.iterdir()]
+    except OSError:
+        return None
+    for name in sorted(names):
+        if name.startswith("event") and name[len("event"):].isdigit():
+            return f"/dev/input/{name}"
+    return None
+
+
+def grab_probe(path: str | os.PathLike[str]) -> None:
+    """Take and immediately release an exclusive grab on one evdev node.
+
+    Raises OSError (EBUSY) when another process already holds the device.
+    """
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+    try:
+        fcntl.ioctl(fd, EVIOCGRAB, 1)
+        fcntl.ioctl(fd, EVIOCGRAB, 0)
+    finally:
+        os.close(fd)
+
+
+def exclusive_grab_reason(path: str | os.PathLike[str] | None, probe=grab_probe) -> str:
+    """Explain why a js node delivers nothing, or '' when it is free.
+
+    A js node has no grab of its own: EVIOCGRAB is taken on the evdev node of
+    the same device, and the kernel then delivers that device's events to the
+    grabbing handle only -- the js node sees none of them, not even a partial
+    stream.  Probing with a grab of our own is the only userspace way to see
+    that, and a held device answers EBUSY.
+
+    Anything other than EBUSY (no such node, no permission) means "cannot
+    tell" and reports nothing rather than a guess.
+    """
+    if not path:
+        return ""
+    try:
+        probe(path)
+    except OSError as error:
+        if error.errno == errno.EBUSY:
+            return f"{path} is exclusively grabbed by another process (EVIOCGRAB)"
+        return ""
+    return ""
 
 
 def joystick_name(fd: int, length: int = 256) -> str:
@@ -225,7 +283,10 @@ def steering_curve(value: float) -> float:
     if magnitude <= deadzone:
         return 0.0
     travel = (magnitude - deadzone) / (1.0 - deadzone)
-    curved = deadzone + (1.0 - deadzone) * (0.33 * travel + 0.67 * travel ** 3)
+    # Tuned 2026-09-18 (user: "slightly decrease" the steering): the cubic
+    # weight is an ~8% reduction mid-travel with the deadzone and the full-lock
+    # endpoint unchanged, so nothing becomes unreachable.
+    curved = deadzone + (1.0 - deadzone) * (0.25 * travel + 0.75 * travel ** 3)
     return -curved if value < 0 else curved
 
 
@@ -233,9 +294,15 @@ class DeckControls:
     """Personal layout: R2 go, L2 reverse, left-stick steering.
 
     A, B, and D-pad are unassigned; menus use native touch/mouse input.
-    RB passes through as virtual LB
-    (game L1 boost).  LB emits LT-axis airbrake (value 1.0 down / 0.0 up).
-    DPAD dropped; R2/L2/sticks/START as-is.
+    R2 (analog RT) emits the digital RB key — the game's accelerator is
+    digital — while L2 (analog LT) drives the guest's BRAKE trigger axis
+    (the game reads brake/reverse on its own R2).  RB passes through as
+    virtual LB (game L1 boost); LB (physical L1) drives the guest's
+    HANDBRAKE trigger axis (the game's own L2 air brake).  The two shoulder
+    pairs therefore stay on four distinct guest controls; sharing one axis
+    between them made L1 and L2 the same action (user report 2026-09-18,
+    "every button works except L2 and L1 — both apply handbrake").
+    START becomes BACK (pause).  DPAD dropped; sticks pass through (LX curved).
     """
     def __init__(self):
         self.accelerating = None
@@ -254,14 +321,20 @@ class DeckControls:
                 event['key'] = 'LB'
                 return [event]
             if key == 'LB':
-                # LB emits LT-axis airbrake.
-                return [dict(type='axis', axis='LT', value=1.0 if event['action'] == 'down' else 0.0, t_ms=event['t_ms'])]
+                # Physical L1 is the game's AIR BRAKE / HANDBRAKE, which its
+                # own L2 trigger drives: the guest's handbrake axis, kept
+                # distinct from the brake axis physical L2 drives below.
+                return [dict(type='axis', axis='HANDBRAKE', value=1.0 if event['action'] == 'down' else 0.0, t_ms=event['t_ms'])]
             if key == 'START':
                 event['key'] = 'BACK'  # Game's pause/menu action.
         else:
             axis = event['axis']
             if axis in ('RX', 'RY'):
                 return []
+            if axis == 'LT':
+                # Physical L2 is BRAKE / REVERSE (the game reads that on its R2
+                # trigger axis), not the handbrake L1 owns.
+                event['axis'] = 'BRAKE'
             if axis == 'LX':
                 event['value'] = steering_curve(event['value'])
             if axis == 'RT':
@@ -271,8 +344,6 @@ class DeckControls:
                     return []
                 self.accelerating = pressed
                 return [dict(type='button', key='RB', action='down' if pressed else 'up', t_ms=event['t_ms'])]
-            if axis == 'LT':
-                event['axis'] = 'RT'
         return [event]
 
 
@@ -280,6 +351,45 @@ def ioctl_count(fd, request):
     result = bytearray(1)
     fcntl.ioctl(fd, request, result, True)
     return result[0]
+
+
+# Steam's virtual pad (Gaming Mode) is torn down and recreated while a game
+# runs: the open fd then fails reads with ENODEV.  Reopen the SAME node for a
+# bounded window instead of exiting, because the runner treats a bridge exit as
+# fatal and tears the whole lane down.
+REOPEN_ATTEMPTS = 40
+REOPEN_DELAY = 0.5
+
+
+class JoystickQueryError(OSError):
+    """The node opened but its kernel identity/maps could not be queried."""
+
+
+def joystick_maps(path):
+    """Open one js node and derive its identity, layout and control maps.
+
+    Raises OSError if the node cannot be opened or queried.  Kept as the one
+    place that turns a device path into maps: a reopen after a device
+    re-enumeration must derive them exactly the same way as startup.
+    """
+    fd = open(path, "rb", buffering=0)
+    try:
+        name = joystick_name(fd.fileno())
+        metadata = device_metadata(path)
+        axis_count = ioctl_count(fd, JSIOCGAXES)
+        button_count = ioctl_count(fd, JSIOCGBUTTONS)
+        amap = array.array("B", [0] * 64)
+        bmap = array.array("H", [0] * 512)
+        fcntl.ioctl(fd, JSIOCGAXMAP, amap, True)
+        fcntl.ioctl(fd, JSIOCGBTNMAP, bmap, True)
+        amap = amap[:axis_count]
+        bmap = bmap[:button_count]
+    except OSError as error:
+        fd.close()
+        raise JoystickQueryError(str(error)) from error
+    layout = device_layout(name, metadata)
+    description = describe_mapping(amap, bmap, name=name, metadata=metadata)
+    return fd, name, layout, description, amap, bmap
 
 
 def _parse_bridge_args():
@@ -303,56 +413,36 @@ def main():
     chosen = None
     chosen_layout = "xbox"
     chosen_description = None
+    amap = bmap = None
+    # Query each readable node's metadata and maps before selecting it.  This
+    # keeps the motion-sensor js node from becoming a generic stick producer.
     for path in candidates:
         try:
-            fd = open(path, "rb", buffering=0); chosen = path; break
+            fd, name, chosen_layout, chosen_description, amap, bmap = joystick_maps(path)
+        except JoystickQueryError as error:
+            print(f"joystick: cannot query kernel metadata/maps: {error}", file=sys.stderr)
+            return 3
         except OSError:
+            continue  # unreadable node; try the next candidate
+        chosen = path
+        print(f"joystick: kernel-map {json.dumps(chosen_description, sort_keys=True)}", file=sys.stderr, flush=True)
+        if chosen_layout == "ignore-motion-sensors":
+            print(f"joystick: ignoring {chosen} ({name})", file=sys.stderr, flush=True)
+            fd.close()
+            fd = None
+            chosen = None
+            # A caller that explicitly selected js1 should get a clean
+            # no-device result; automatic discovery can continue to js2.
             continue
+        break
     if fd is None:
         print("joystick: no readable /dev/input/js* (set JCS2_JOYSTICK)", file=sys.stderr)
         return 2
-    # Query each readable node's metadata and maps before selecting it.  This
-    # keeps the motion-sensor js node from becoming a generic stick producer.
-    while fd is not None:
-        try:
-            name = joystick_name(fd.fileno())
-            metadata = device_metadata(chosen)
-            axis_count = ioctl_count(fd, JSIOCGAXES)
-            button_count = ioctl_count(fd, JSIOCGBUTTONS)
-            amap = array.array("B", [0] * 64)
-            bmap = array.array("H", [0] * 512)
-            fcntl.ioctl(fd, JSIOCGAXMAP, amap, True)
-            fcntl.ioctl(fd, JSIOCGBTNMAP, bmap, True)
-            amap = amap[:axis_count]
-            bmap = bmap[:button_count]
-            chosen_layout = device_layout(name, metadata)
-            chosen_description = describe_mapping(amap, bmap, name=name, metadata=metadata)
-            print(f"joystick: kernel-map {json.dumps(chosen_description, sort_keys=True)}", file=sys.stderr, flush=True)
-            if chosen_layout == "ignore-motion-sensors":
-                print(f"joystick: ignoring {chosen} ({name})", file=sys.stderr, flush=True)
-                fd.close()
-                fd = None
-                chosen = None
-                # A caller that explicitly selected js1 should get a clean
-                # no-device result; automatic discovery can continue to js2.
-                remaining = candidates[candidates.index(path) + 1:]
-                for next_path in remaining:
-                    try:
-                        fd = open(next_path, "rb", buffering=0); chosen = next_path; break
-                    except OSError:
-                        continue
-                if fd is None:
-                    break
-                path = chosen
-                continue
-            break
-        except OSError as e:
-            print(f"joystick: cannot query kernel metadata/maps: {e}", file=sys.stderr)
-            fd.close()
-            return 3
-    if fd is None or chosen is None or chosen_description is None:
+    if chosen is None or chosen_description is None:
         print("joystick: no supported readable joystick", file=sys.stderr)
         return 2
+    chosen_name = name
+    chosen_identity = device_metadata(chosen)
     print(f"joystick: using {chosen} layout={chosen_layout}", file=sys.stderr, flush=True)
     axis_names, button_names = mapped_controls(amap, bmap, chosen_layout)
     if not axis_names and not button_names:
@@ -375,35 +465,154 @@ def main():
         for translated in personal.translate(event) if personal else [event]:
             print(json.dumps(translated), flush=True)
     on_raw_event = None  # Legacy in-process callback (unused in subprocess mode)
+    pressed = set()
+
+    def publish(raw_event) -> bool:
+        """Send one raw event to the runner and/or stdout. False = consumed."""
+        if side_channel_sock is not None:
+            try:
+                side_channel_sock.sendall((json.dumps(raw_event, separators=(",",":")) + "\n").encode())
+            except (BrokenPipeError, OSError):
+                pass  # runner closed; keep running for stdout compat
+        if on_raw_event is not None and not on_raw_event(raw_event):
+            return False  # Consumed by in-process callback
+        if side_channel_sock is not None and personal is not None:
+            print(json.dumps(raw_event, separators=(",",":")), flush=True)
+        else:
+            emit(raw_event)
+        return True
+
+    def neutralise():
+        """Release every control we still hold.
+
+        A device that disappears mid-race leaves the guest holding whatever was
+        down when it vanished; without this the car keeps accelerating (or
+        steering) until something else changes that control.
+        """
+        now = int(time.monotonic() * 1000)
+        for key, value in list(axes.items()):
+            if value:
+                publish({"type": "axis", "axis": key, "value": 0.0, "t_ms": now})
+        for key in sorted(pressed):
+            publish({"type": "button", "key": key, "action": "up", "t_ms": now})
+        axes.clear()
+        pressed.clear()
+    # A js node cannot be grabbed itself: events are lost to another process's
+    # EVIOCGRAB on the same device's evdev node, and the only symptom is the
+    # silence below.  Report that state instead of reading a dead node for
+    # hours, and noisily mark the JS_EVENT_INIT burst so a state snapshot can
+    # never be mistaken for presses in the trace.
+    evdev_node = evdev_sibling(chosen)
+    grab_reason = exclusive_grab_reason(evdev_node)
+    if grab_reason:
+        print(f"joystick: WARNING input is blocked: {grab_reason}; {chosen} will deliver "
+              f"nothing but its open-time state snapshot until it is released "
+              f"(Desktop Mode: deck-input-mapper --grab)", file=sys.stderr, flush=True)
+    last_live = time.monotonic()
+    next_ownership_check = last_live + 30.0
+    saw_init = False
+    saw_live = False
     try:
         while True:
-            ready, _, _ = select.select([fd], [], [], 0.5)
+            try:
+                ready, _, _ = select.select([fd], [], [], 0.5)
+            except OSError:
+                ready = [fd]  # dead fd still reports readable; the read decides
             if not ready:
+                # Probe only while the node is quiet: taking the grab candidate
+                # starves this very node for the duration of the probe, so it
+                # must never race a press that is already flowing.
+                now = time.monotonic()
+                if evdev_node and now >= next_ownership_check and now - last_live >= 30.0:
+                    next_ownership_check = now + 30.0
+                    reason = exclusive_grab_reason(evdev_node)
+                    if reason != grab_reason:
+                        grab_reason = reason
+                        if reason:
+                            print(f"joystick: WARNING input is blocked: {reason}", file=sys.stderr, flush=True)
+                        else:
+                            print(f"joystick: {evdev_node} released; {chosen} is live", file=sys.stderr, flush=True)
                 continue
-            raw = fd.read(FMT.size)
+            try:
+                raw = fd.read(FMT.size)
+            except OSError as error:
+                # The device is gone: release everything it was holding before
+                # anything else, so a vanished pad cannot leave the guest on a
+                # stuck throttle or steering angle.
+                neutralise()
+                print(f"joystick: {chosen} read failed ({error}); released held controls, "
+                      f"reopening the same node", file=sys.stderr, flush=True)
+                reopened = None
+                for attempt in range(REOPEN_ATTEMPTS):
+                    time.sleep(REOPEN_DELAY)
+                    try:
+                        candidate = joystick_maps(chosen)
+                    except OSError:
+                        continue
+                    name, layout = candidate[1], candidate[2]
+                    if layout == "ignore-motion-sensors":
+                        # Never adopt the motion-sensor node: keep waiting for
+                        # the pad to come back on this path.
+                        candidate[0].close()
+                        continue
+                    identity = device_metadata(chosen)
+                    if (name, identity) != (chosen_name, chosen_identity):
+                        print(f"joystick: {chosen} came back as a different device "
+                              f"({chosen_name!r} {chosen_identity} -> {name!r} {identity}); "
+                              f"adopting it because it is still a supported pad",
+                              file=sys.stderr, flush=True)
+                    reopened = candidate
+                    break
+                if reopened is None:
+                    print(f"joystick: {chosen} did not come back within "
+                          f"{REOPEN_ATTEMPTS * REOPEN_DELAY:.0f}s ({error}); exiting",
+                          file=sys.stderr, flush=True)
+                    return 5
+                fd.close()
+                fd, name, chosen_layout, chosen_description, amap, bmap = reopened
+                axis_names, button_names = mapped_controls(amap, bmap, chosen_layout)
+                if not axis_names and not button_names:
+                    print(f"joystick: {chosen} came back with no supported controls",
+                          file=sys.stderr, flush=True)
+                    return 4
+                personal = DeckControls() if chosen_layout == 'steam-deck' else None
+                evdev_node = evdev_sibling(chosen)
+                grab_reason = exclusive_grab_reason(evdev_node)
+                axes.clear()  # fresh device: re-send its state instead of diffing
+                saw_init = saw_live = False
+                last_live = time.monotonic()
+                next_ownership_check = last_live + 30.0
+                print(f"joystick: {chosen} re-enumerated; reopened after "
+                      f"{(attempt + 1) * REOPEN_DELAY:.1f}s layout={chosen_layout}",
+                      file=sys.stderr, flush=True)
+                continue
             if len(raw) != FMT.size:
                 return 0
             _, value, kind, number = FMT.unpack(raw)
+            is_init = bool(kind & 0x80)
             kind &= 0x7f  # JS_EVENT_INIT is advisory
+            if is_init:
+                if not saw_init:
+                    saw_init = True
+                    print(f"joystick: state snapshot on {chosen} (JS_EVENT_INIT: device state at "
+                          f"open, not user input)", file=sys.stderr, flush=True)
+            else:
+                last_live = time.monotonic()
+                if not saw_live:
+                    saw_live = True
+                    print(f"joystick: first live event from {chosen}", file=sys.stderr, flush=True)
             now = int(time.monotonic() * 1000)
             if kind == 1 and number in button_names and button_names[number]:
                 raw_event = {"type":"button", "key":button_names[number], "action":"down" if value else "up", "t_ms":now}
-                # Send raw event over side-channel for runner-side driving control mapping.
-                if side_channel_sock is not None:
-                    try:
-                        side_channel_sock.sendall((json.dumps(raw_event, separators=(",",":")) + "\n").encode())
-                    except (BrokenPipeError, OSError):
-                        pass  # runner closed; keep running for stdout compat
-                # Legacy in-process callback (for testing)
-                if on_raw_event is not None and not on_raw_event(raw_event):
-                    continue  # Consumed by in-process callback
-                # When side-channel is active, skip DeckControls here — the
-                # runner applies it to filtered events.  Stdout still gets
-                # DeckControls for backward compat / standalone debugging.
-                if side_channel_sock is not None and personal is not None:
-                    print(json.dumps(raw_event, separators=(",",":")), flush=True)
+                if value:
+                    pressed.add(raw_event["key"])
                 else:
-                    emit(raw_event)
+                    pressed.discard(raw_event["key"])
+                # Side-channel carries the raw event for runner-side driving
+                # mapping; when it is active DeckControls is NOT applied here
+                # (the runner owns it), while stdout keeps it for standalone use.
+                if not publish(raw_event):
+                    continue  # consumed by in-process callback
             elif kind == 2 and number in axis_names and axis_names[number]:
                 key = axis_names[number]
                 v = normalise_axis_value(value, key)
@@ -415,20 +624,8 @@ def main():
                     continue
                 axes[key] = v
                 raw_event = {"type":"axis", "axis":key, "value":v, "t_ms":now}
-                # Send raw event over side-channel
-                if side_channel_sock is not None:
-                    try:
-                        side_channel_sock.sendall((json.dumps(raw_event, separators=(",",":")) + "\n").encode())
-                    except (BrokenPipeError, OSError):
-                        pass
-                # Legacy in-process callback
-                if on_raw_event is not None and not on_raw_event(raw_event):
+                if not publish(raw_event):
                     continue
-                # When side-channel active, stdout gets raw event (runner owns DeckControls)
-                if side_channel_sock is not None and personal is not None:
-                    print(json.dumps(raw_event, separators=(",",":")), flush=True)
-                else:
-                    emit(raw_event)
     except BrokenPipeError:
         return 0
     finally:

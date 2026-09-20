@@ -46,17 +46,6 @@
       }
     },
     {
-      "source": "linux-launcher/controls_settings.py",
-      "destination": "linux-launcher/controls_settings.py",
-      "kind": "file",
-      "inventory": {
-        "logical_bytes": 3296,
-        "allocated_bytes": 4096,
-        "files": 1,
-        "symlinks": []
-      }
-    },
-    {
       "source": "linux-launcher/audio_config.py",
       "destination": "linux-launcher/audio_config.py",
       "kind": "file",

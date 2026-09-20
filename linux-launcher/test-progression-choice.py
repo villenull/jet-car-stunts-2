@@ -889,65 +889,13 @@ class PanelTests(unittest.TestCase):
                             for text in labels))
 
 
-class WiringTests(unittest.TestCase):
-    """controls_settings has NO progression UI (Sept 14 scope): no
-    selector button, no status line, no choice file created by the panel.
-    Play still proceeds (this suite's own stub; tilt-owned suite untouched)."""
-
-    def run_outer(self, queue, choice_dir=None):
-        FakeTk.instances.clear()
-        FakeTk.queue.clear()
-        FakeTk.queue.extend(queue)
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp = Path(tmp)
-            offer = choice_dir or tmp
-            with patch.dict("sys.modules", {"tkinter": stub_tk()}):
-                with patch.object(pc, "default_choice_path",
-                                  return_value=offer / pc.CHOICE_FILENAME):
-                    import controls_settings as cs
-                    result = cs.show_settings(str(offer / "tilt.json"), None)
-            widgets = list(FakeTk.instances)
-            stored_path = offer / pc.CHOICE_FILENAME
-            stored = (json.loads(stored_path.read_text(encoding="utf-8"))
-                      if stored_path.is_file() else None)
-            return result, widgets, offer, stored
-
-    def test_no_progression_button_and_no_choice_file(self):
-        result, widgets, _, stored = self.run_outer(["Play"])
-        self.assertTrue(result)
-        self.assertIsNone(stored)
-        texts = [kw.get("text", "") for _, kw in widgets]
-        self.assertFalse(any("Progression" in t for t in texts))
-
-    def test_no_progression_status_line(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            offer = Path(tmp)
-            pc.set_choice(offer / pc.CHOICE_FILENAME, pc.CHOICE_UNLOCK_ALL,
-                          explicit=True)
-            result, widgets, _, _ = self.run_outer(["Play"], choice_dir=offer)
-            self.assertTrue(result)
-            texts = [kw.get("text", "") for _, kw in widgets]
-            self.assertFalse(any("Progression:" in t for t in texts))
-
-    def test_driving_panel_needs_no_progression_module(self):
-        # show_settings must not import progression_choice at all: even a
-        # broken progression module cannot break the driving panel.
-        with tempfile.TemporaryDirectory() as tmp:
-            with patch.dict("sys.modules", {"tkinter": stub_tk(),
-                                            "progression_choice": None}):
-                import controls_settings as cs
-                FakeTk.instances.clear()
-                FakeTk.queue.clear()
-                FakeTk.queue.extend(["Play"])
-                self.assertTrue(cs.show_settings(str(Path(tmp) / "t.json"), None))
-
-
 EXPECTED_STAGE_ORDER = [
     "acquire_launch_locks", "preflight", "start_server",
     "start_emulator", "orient_visible_emulator", "isolate_guest",
+    "seed_guest_media_volume",
     "maybe_apply_progression_switch",
-    "verify_packages", "start_controller", "start_input",
-    "launch_game", "verify_gamescope_window",
+    "verify_packages", "start_controller", "claim_deck_pad", "start_input",
+    "launch_game", "verify_gamescope_window", "align_visible_emulator",
 ]
 
 
@@ -962,7 +910,6 @@ class RunnerStageTests(unittest.TestCase):
         import types
         import runner as runner_module
         launcher = runner_module.Launcher.__new__(runner_module.Launcher)
-        launcher.args = types.SimpleNamespace(control_settings=False)
         launcher.stop_requested = False
         run_dir = Path(tempfile.mkdtemp(prefix="pc-runner-"))
         self.addCleanup(shutil.rmtree, run_dir, True)
@@ -1014,7 +961,6 @@ class RunnerStageTests(unittest.TestCase):
             return "proceeded", "no pending progression intent"
 
         launcher = runner_module.Launcher.__new__(runner_module.Launcher)
-        launcher.args = __import__("types").SimpleNamespace(control_settings=False)
         launcher.stop_requested = False
         with tempfile.TemporaryDirectory() as tmp:
             launcher.run_dir = Path(tmp)

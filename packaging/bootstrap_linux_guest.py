@@ -114,6 +114,20 @@ class BootstrapError(Exception):
         self.message = message
 
 
+def _load_qt_settings_module():
+    """Load the shared emulator Qt settings helper from the repo root."""
+    spec = importlib.util.spec_from_file_location(
+        "jcs2_qt_settings", _REPO_ROOT / "linux-launcher" / "qt_settings.py")
+    if spec is None or spec.loader is None:
+        raise RuntimeError("cannot load linux-launcher/qt_settings.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_qt_settings = _load_qt_settings_module()
+
+
 # ---------------------------------------------------------------------------
 # Pure helpers (no filesystem mutation; safe to unit-test with fakes).
 # ---------------------------------------------------------------------------
@@ -230,7 +244,7 @@ def avd_config_text(image_abs: Path, avd_name: str) -> str:
         "avd.ini.encoding = UTF-8\n"
         "fastboot.forceColdBoot = yes\n"
         "fastboot.forceFastBoot = no\n"
-        "hw.accelerometer = no\n"
+        "hw.accelerometer = yes\n"
         "hw.audioInput = no\n"
         "hw.audioOutput = no\n"
         "hw.camera.back = none\n"
@@ -799,6 +813,17 @@ def execute_bootstrap(cfg: BootstrapConfig) -> int:
             time.sleep(0.2)
         else:
             raise BootstrapError(EXIT_CLAIM, "owned adb server did not open its port")
+
+        # Seed the exact emulator-wide QSettings key before any visible
+        # emulator process can map and display its compatibility warning.
+        try:
+            settings_path, warning_key, changed = (
+                _qt_settings.seed_compatibility_warning_suppression(
+                    cfg.avd_name))
+        except _qt_settings.QtSettingsError as error:
+            raise BootstrapError(EXIT_EMULATOR, str(error)) from error
+        print(f"stage=compatibility-warning-seeded path={settings_path} "
+              f"key={warning_key} changed={changed}", flush=True)
 
         try:
             emulator = owned.spawn(

@@ -1,6 +1,11 @@
 {
   "schema": 1,
-  "comment": "Pinned first-setup downloads. Every archive is verified by size and SHA-256 before extraction. Values were checked on 2026-09-12 against the archives used by the tested API28 runtime and the official repository manifests.",
+  "comment": "Pinned first-setup downloads. Every archive is verified by size and SHA-256 before extraction. Values were checked on 2026-09-12 against the archives used by the tested API28 runtime and the official repository manifests; the primary emulator pin was re-verified 2026-09-18.",
+  "emulator_select": {
+    "primary": "emulator",
+    "alternate": "emulator-37.1.11",
+    "note": "runtime/sdk/emulator is what linux-launcher/runtime_paths.py and runner.py use. Components with role=alternate are never fetched by packaging/installer/install_jcs2.py unless --include-alternates is passed."
+  },
   "components": [
     {
       "id": "python",
@@ -38,7 +43,23 @@
     },
     {
       "id": "emulator",
-      "purpose": "Android Emulator 37.1.11 (build 15917651), complete tree",
+      "purpose": "Android Emulator 32.1.15 (build 10696886), complete tree; linux-launcher/runner.py rotation alignment is written against this build (no launch flag or getter for the host window rotation)",
+      "url": "https://dl.google.com/android/repository/emulator-linux_x64-10696886.zip",
+      "filename": "emulator-linux_x64-10696886.zip",
+      "size": 270191252,
+      "sha256": "284954ab33259e0125757623132e7e36982d968fb6c22495145bb1b37861e6ef",
+      "sha1": "b78f4d2c22d6aa5ca83d26ccb68cbf885a273888",
+      "format": "zip",
+      "top": "emulator",
+      "dest": "runtime/sdk/emulator",
+      "required_files": ["emulator", "qemu-img"],
+      "license": {"id": "android-sdk-license", "requires_acceptance": true, "text": "licenses/android-sdk-license.txt"},
+      "verification": "2026-09-18: downloaded from this exact URL and measured (sha256+sha1 above); dl.google.com reports content-length 270191252 and `unzip -t` validates every member CRC; tree carries emulator/LICENSE (Apache-2.0), NOTICE.csv and NOTICE.txt; this build is the one the Deck lane was exercised on (console rotate + `sensor set acceleration`)"
+    },
+    {
+      "id": "emulator-37.1.11",
+      "role": "alternate",
+      "purpose": "Android Emulator 37.1.11 (build 15917651) kept side by side for A/B runs; never fetched by the setup entry point",
       "url": "https://dl.google.com/android/repository/emulator-linux_x64-15917651.zip",
       "filename": "emulator-linux_x64-15917651.zip",
       "size": 334378080,
@@ -46,10 +67,10 @@
       "sha1": "1b1f78891abf8ec268264356e1365c25519e8379",
       "format": "zip",
       "top": "emulator",
-      "dest": "runtime/sdk/emulator",
+      "dest": "runtime/sdk/emulator-37.1.11",
       "required_files": ["emulator", "qemu-img"],
       "license": {"id": "android-sdk-license", "requires_acceptance": true, "text": "licenses/android-sdk-license.txt"},
-      "verification": "2026-09-12: local archive of the tested runtime; sha1/size match repository2-1.xml"
+      "verification": "2026-09-12: local archive of the previously fetched runtime; sha1/size match repository2-1.xml"
     },
     {
       "id": "system-image",

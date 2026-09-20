@@ -65,20 +65,6 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual(self.x.cursor_windows, [10, 10])
         self.assertEqual(self.x.actions, [])
 
-    def test_controls_panel_suspends_game_focus_then_returns_once(self):
-        self.policy.update([self.main])
-        self.x.actions.clear()
-        self.policy.update([self.main, self.toolbar], panel_active=True)
-        self.assertEqual(self.x.actions, [('unmap', 11)])
-        self.x.actions.clear()
-        self.policy.update([self.main], panel_active=True)
-        self.assertEqual(self.x.actions, [])
-        self.policy.update([self.main], panel_active=False)
-        self.assertEqual(self.x.actions, [('present', 10)])
-        self.x.actions.clear()
-        self.policy.update([self.main], panel_active=False)
-        self.assertEqual(self.x.actions, [])
-
     def test_no_main_does_not_touch_toolbar(self):
         self.assertIsNone(self.policy.update([self.toolbar]))
         self.assertEqual(self.x.actions, [])

@@ -177,6 +177,26 @@ class SteamLaunchTests(unittest.TestCase):
         self.assertIn(f'sdk={self.root / "runtime/sdk"}', log)
         self.assertIn(f'avd={self.root / "state/avd"}', log)
 
+    def test_gaming_mode_lane_spec_reaches_runner(self):
+        self.require_free_ports()
+        self.env.pop('JCS2_SDK')
+        sdk = self.root / 'state/emulator-ab-10696886'
+        (sdk / 'platform-tools').mkdir(parents=True)
+        self.script(sdk / 'platform-tools/adb', '#!/bin/sh\nexit 0\n')
+        self.script(self.root / 'run-jcs2',
+                    '#!/bin/sh\nprintf "sdk=%s\\navd-home=%s\\nlayout=%s\\navd=%s\\nxi2=%s\\nargs=%s\\n" '
+                    '"$ANDROID_HOME" "$ANDROID_AVD_HOME" "$JCS2_LAYOUT" "$JCS2_AVD" "$QT_XCB_NO_XI2" "$*"\n')
+        proc = self.launch()
+        proc.communicate(timeout=5)
+        self.assertEqual(proc.returncode, 0)
+        log = self.log()
+        self.assertIn(f'sdk={sdk}', log)
+        self.assertIn(f'avd-home={self.root / "state/avd"}', log)
+        self.assertIn('layout=portable', log)
+        self.assertIn('avd=jcs2-fresh', log)
+        self.assertIn('xi2=1', log)
+        self.assertIn('args=--input joystick', log)
+
     def test_term_forwarded_and_cleanup_waited(self):
         self.require_free_ports()
         self.script(self.root / 'run-jcs2', '''#!/usr/bin/env python3

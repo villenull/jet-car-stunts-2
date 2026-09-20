@@ -54,7 +54,7 @@ class LiveControlsTests(unittest.TestCase):
         # Sept-14 tilt-buttons: effective TILT + owned IMU drops analog
         # turning/pitch so stick and native tilt cannot double-drive.
         # Triggers, bumpers, and every other button always flow.
-        self.router.change_control_mode('tilt', 'one')
+        self.router._apply_control_mode('tilt', 'one')
         self.assertEqual(self.adapter.mode, ControlMode.TILT)
         self.assertTrue(self.adapter._open)
         self.clear()
@@ -72,7 +72,7 @@ class LiveControlsTests(unittest.TestCase):
                 for e in self.events()]
         self.assertEqual(seen, [('RT', 0.9), ('LT', 0.4), ('RB', 'down'),
                                 ('LB', 'down'), ('START', 'down'), ('Y', 'down')])
-        self.router.change_control_mode('gamepad', 'two')
+        self.router._apply_control_mode('gamepad', 'two')
         self.assertEqual(self.settings.mode, ControlMode.GAMEPAD)
 
     def test_unowned_tilt_request_stays_armed_fail_closed(self):
@@ -80,7 +80,7 @@ class LiveControlsTests(unittest.TestCase):
         # sticks stay dropped (no silent fallback re-enables them); the dead
         # feed is reported loudly so the user selects Gamepad explicitly.
         self.adapter._reader.open.return_value = False
-        self.router.change_control_mode('tilt', 'dead-stick-guard')
+        self.router._apply_control_mode('tilt', 'dead-stick-guard')
         self.assertEqual(self.status()['mode'], 'tilt')
         self.assertEqual(self.settings.mode, ControlMode.TILT)
         self.assertFalse(self.status()['sensor_available'])
@@ -95,7 +95,7 @@ class LiveControlsTests(unittest.TestCase):
     def test_sensor_drop_mid_session_keeps_gate_armed(self):
         # A mid-session IMU drop must NOT release the gate (fail-closed):
         # sticks stay dropped; recovery needs no re-arm and leaks nothing.
-        self.router.change_control_mode('tilt', 'drop')
+        self.router._apply_control_mode('tilt', 'drop')
         self.clear()
         self.router._forward_line(b'{"type":"axis","axis":"LX","value":0.8}')
         self.assertEqual(self.events(), [])
@@ -110,7 +110,7 @@ class LiveControlsTests(unittest.TestCase):
             dict(type='axis', axis='LX', value=.5, t_ms=1))
         held = self.events()[-1]['value']
         self.assertNotEqual(held, 0.0)
-        self.router.change_control_mode('tilt', 'settle')
+        self.router._apply_control_mode('tilt', 'settle')
         # Engage: neutral levels the held stick, no stick restore.
         self.assertEqual([e['value'] for e in self.events()][-2:], [0, 0])
         self.clear()
@@ -122,7 +122,7 @@ class LiveControlsTests(unittest.TestCase):
         # Only an explicit Gamepad selection restores the cached sticks
         # (neutral pair first, then cached values in axis order; the last
         # cached LX is the raw 0.8 forward above, which the gate dropped).
-        self.router.change_control_mode('gamepad', 'settle-back')
+        self.router._apply_control_mode('gamepad', 'settle-back')
         tail = [(e.get('axis'), e.get('value')) for e in self.events()[-4:]]
         self.assertEqual(tail[-4:-2], [('LX', 0.0), ('LY', 0.0)])
         self.assertEqual(tail[-2], ('LX', 0.8))
@@ -134,7 +134,7 @@ class LiveControlsTests(unittest.TestCase):
         # pedals and every button flow; Gamepad restores full forwarding.
         from joystick_bridge import DeckControls
         self.router._deck_controls = DeckControls()
-        self.router.change_control_mode('tilt', 'smoke-tilt')
+        self.router._apply_control_mode('tilt', 'smoke-tilt')
         self.clear()
         drive = [
             dict(type='axis', axis='LX', value=0.8, t_ms=1),
@@ -154,12 +154,14 @@ class LiveControlsTests(unittest.TestCase):
         self.assertNotIn('LX', axes)
         self.assertNotIn('LY', axes)
         # Pedals/buttons preserved through the production mapping
-        # (physical RT gas -> digital RB key; physical LT -> RT axis;
-        # physical RB -> LB key; physical LB -> LT axis; START -> BACK).
-        self.assertEqual(seen, [('RB', 'down'), ('RT', 0.4), ('LB', 'down'),
-                                ('LT', 1.0), ('BACK', 'down'), ('Y', 'down')])
+        # (physical RT gas -> digital RB key; physical LT -> BRAKE axis;
+        # physical RB -> LB key; physical LB -> HANDBRAKE axis; START -> BACK).
+        # BRAKE and HANDBRAKE are the two distinct guest trigger axes: one
+        # shared axis made the two shoulder controls the same action.
+        self.assertEqual(seen, [('RB', 'down'), ('BRAKE', 0.4), ('LB', 'down'),
+                                ('HANDBRAKE', 1.0), ('BACK', 'down'), ('Y', 'down')])
         # Reversible: explicit Gamepad restores stick forwarding.
-        self.router.change_control_mode('gamepad', 'smoke-back')
+        self.router._apply_control_mode('gamepad', 'smoke-back')
         self.clear()
         self.router._handle_side_channel_event(
             dict(type='axis', axis='LX', value=0.8, t_ms=9))
@@ -167,7 +169,7 @@ class LiveControlsTests(unittest.TestCase):
 
     def test_unavailable_sensor_persists_tilt_fail_closed(self):
         self.adapter._reader.open.return_value = False
-        self.router.change_control_mode('tilt', 'unavailable')
+        self.router._apply_control_mode('tilt', 'unavailable')
         self.assertEqual(self.status()['mode'], 'tilt')
         self.assertEqual(self.status()['requested_mode'], 'tilt')
         self.assertFalse(self.status()['sensor_available'])
@@ -181,7 +183,7 @@ class LiveControlsTests(unittest.TestCase):
 
     def test_silent_opened_sensor_stays_armed_and_keeps_physical_buttons(self):
         self.motion_ready.return_value = False
-        self.router.change_control_mode('tilt', 'silent')
+        self.router._apply_control_mode('tilt', 'silent')
         self.motion_ready.assert_called_once_with(runner.MOTION_READY_TIMEOUT)
         self.assertEqual(self.status()['mode'], 'tilt')
         self.assertFalse(self.status()['sensor_available'])
@@ -192,23 +194,29 @@ class LiveControlsTests(unittest.TestCase):
         self.router._forward_line(b'{"type":"axis","axis":"LT","value":1.0}')
         self.assertEqual([e.get('axis') for e in self.events()], ['LT'])
 
-    def test_startup_tilt_unavailable_keeps_persisted_tilt(self):
-        # Fail-closed startup: persisted Tilt Drive + dead sensor keeps Tilt
-        # (gate armed) instead of rewriting the settings to Gamepad.
+    def test_startup_migrates_a_persisted_tilt_mode_to_gamepad(self):
+        # Tilt Drive is unselectable on this AVD, so a lane that persisted it
+        # (or that ran on an older build) comes up in Gamepad with the migration
+        # logged, and the sticks are live again instead of gate-armed.
         self.settings.mode = ControlMode.TILT
         with mock.patch.object(runner.TiltAdapter, 'open', return_value=False), \
              mock.patch.object(runner.TiltAdapter, 'await_motion', return_value=False):
             self.assertTrue(self.router.start_tilt(str(self.settings._path)))
-        self.assertEqual(self.settings.mode, ControlMode.TILT)
+        self.assertEqual(self.settings.mode, ControlMode.GAMEPAD)
         status = json.loads((self.launcher.run_dir / 'control-mode.json').read_text())
-        self.assertEqual(status['mode'], 'tilt')
-        self.assertIn('Tilt Drive', status['error'])
+        self.assertEqual(status['mode'], 'gamepad')
+        rows = [call.args[0] for call in self.launcher.log.call_args_list if call.args]
+        self.assertIn('stage=tilt-drive-disabled', rows)
+        self.assertFalse(self.router.tilt_mode)
         self.clear()
         self.router._forward_line(b'{"type":"axis","axis":"LX","value":0.8}')
         self.router._forward_line(b'{"type":"button","key":"RB","action":"down"}')
-        self.assertEqual([e.get('axis', e.get('key')) for e in self.events()], ['RB'])
+        self.assertEqual([e.get('axis', e.get('key')) for e in self.events()], ['LX', 'RB'])
 
-    def test_saved_tilt_with_silent_sensor_stays_armed(self):
+    def test_saved_tilt_with_silent_sensor_still_migrates_to_gamepad(self):
+        # Same migration with a sensor that opens but never reports: the dead
+        # feed no longer leaves the lane gate-armed, because Gamepad is the only
+        # selectable mode.
         self.settings.mode = ControlMode.TILT
         self.router._tilt_adapter = None
         with mock.patch.object(runner.TiltAdapter, 'open', return_value=True), \
@@ -216,15 +224,13 @@ class LiveControlsTests(unittest.TestCase):
                 mock.patch.object(runner.TiltAdapter, 'close') as closed:
             self.assertTrue(self.router.start_tilt(str(self.settings._path)))
         closed.assert_called_once()
-        self.assertEqual(self.status()['mode'], 'tilt')
-        self.assertEqual(self.settings.mode, ControlMode.TILT)
-        self.assertIn('Tilt Drive', self.status()['error'])
-        self.assertIn('no data', self.status()['error'])
-        self.assertTrue(self.router.tilt_mode)
+        self.assertEqual(self.status()['mode'], 'gamepad')
+        self.assertEqual(self.settings.mode, ControlMode.GAMEPAD)
+        self.assertFalse(self.router.tilt_mode)
 
     def test_failed_persistence_keeps_old_effective_mode_and_reports_error(self):
         with mock.patch.object(self.settings, '_save', side_effect=OSError('disk full')):
-            self.router.change_control_mode('tilt', 'fail')
+            self.router._apply_control_mode('tilt', 'fail')
         self.assertEqual(self.adapter.mode, ControlMode.GAMEPAD)
         self.assertEqual(self.status()['mode'], 'gamepad')
         self.assertIn('disk full', self.status()['error'])
@@ -233,7 +239,7 @@ class LiveControlsTests(unittest.TestCase):
     def test_no_synthetic_imu_axes_ever_forwarded(self):
         # Corrected-C: the router never calls consume_motion. Deck tilt
         # reaches the game ONLY as native accelerometer vectors.
-        self.router.change_control_mode('tilt')
+        self.router._apply_control_mode('tilt')
         self.router._sensor_transport = FakeSensorTransport()
         self.adapter._estimator._roll = 0.2
         self.adapter._estimator._pitch = -0.1
@@ -245,58 +251,45 @@ class LiveControlsTests(unittest.TestCase):
         self.assertEqual(self.events(), [])
         self.assertEqual(len(self.router._sensor_transport.pushes), 1)
 
-    def test_control_request_is_consumed_and_acknowledged_not_sent_to_guest(self):
-        self.router._forward_line(b'{"type":"control_mode","mode":"tilt","request_id":"abc"}')
-        self.assertEqual(self.status()['request_id'], 'abc')
-        self.assertTrue(all(e['type'] == 'axis' for e in self.events()))
-
-    def test_view_opens_once_release_consumed_and_start_pause_preserved(self):
-        self.router._forward_line(b'{"type":"button","key":"BACK","action":"down"}')
-        self.assertEqual(self.events()[-1]['key'], 'BACK')
-        for action in ('down', 'down', 'up'):
-            self.router._forward_line(json.dumps(dict(type='button', key='VIEW', action=action)).encode())
-        self.launcher.spawn.assert_called_once()
-        self.assertFalse(any(e.get('key') == 'VIEW' for e in self.events()))
-        self.assertTrue((self.launcher.run_dir / 'controls-panel-active').exists())
-        self.clear()
-        self.router._forward_line(b'{"type":"axis","axis":"LX","value":0.7}')
-        self.router._forward_line(b'{"type":"button","key":"X","action":"down"}')
+    def test_select_button_is_dropped_on_both_ingress_paths(self):
+        # Physical SELECT has no guest action and the controller aborts its
+        # live replay on an unknown button name, so neither the client path
+        # nor the bridge side channel may forward it.
+        for line in (b'{"type":"button","key":"VIEW","action":"down"}',
+                     b'{"type":"button","key":"VIEW","action":"up"}'):
+            self.router._forward_line(line)
+        self.router._handle_side_channel_event(
+            dict(type='button', key='VIEW', action='down', t_ms=1))
         self.assertEqual(self.events(), [])
-        self.router._controls_panel.process.poll.return_value = 0
-        self.router._poll_controls_panel()
-        self.assertFalse((self.launcher.run_dir / 'controls-panel-active').exists())
-        self.assertEqual(self.events()[-2]['value'], .7)
 
-    def test_panel_holds_neutral_during_mode_change_then_restores_on_return(self):
-        self.router._stick_axes = {'LX': .5, 'LY': -.2}
-        self.router.open_controls_panel()
-        self.clear()
-        self.router.change_control_mode('gamepad', 'panel')
-        self.assertEqual([e['value'] for e in self.events()], [0, 0])
-        with mock.patch.object(self.adapter, 'consume_motion') as consume:
-            self.router._mirror_native_sensor()
-        consume.assert_not_called()
+    def test_retired_control_request_is_rejected_not_forwarded(self):
+        # The touch panel's control_mode request is gone with the panel; an
+        # old client sending one must not reach the guest as a bogus event.
+        self.router._forward_line(b'{"type":"control_mode","mode":"tilt","request_id":"abc"}')
+        self.assertEqual(self.events(), [])
+        self.launcher.log.assert_any_call('input-rejected', error=mock.ANY, payload=mock.ANY)
 
-    def test_panel_spawn_failure_keeps_game_running_and_removes_focus_marker(self):
-        self.launcher.spawn.side_effect = OSError('spawn failed')
-        self.router.open_controls_panel()
-        self.assertIsNone(self.router._controls_panel)
+    def test_back_button_flows_and_no_host_panel_exists(self):
+        # The pause action (Deck B -> BACK) still reaches the game, and no
+        # host-side panel can open any more (the spawn log stays empty).
+        self.router._forward_line(b'{"type":"button","key":"BACK","action":"down"}')
+        self.assertEqual([e['key'] for e in self.events()], ['BACK'])
+        self.launcher.spawn.assert_not_called()
         self.assertFalse((self.launcher.run_dir / 'controls-panel-active').exists())
-        self.launcher.log.assert_called_with('controls-panel-error', error='spawn failed')
 
     def test_raw_stick_restoration_uses_same_curve_as_normal_forwarding(self):
         event = dict(type='axis', axis='LX', value=.5, t_ms=1)
         self.router._handle_side_channel_event(event)
         normal = self.events()[-1]['value']
-        self.router.change_control_mode('tilt')
+        self.router._apply_control_mode('tilt')
         self.clear()
-        self.router.change_control_mode('gamepad')
+        self.router._apply_control_mode('gamepad')
         # Neutral pair, then cached stick restore (LX restored, LY last).
         self.assertEqual([e['value'] for e in self.events()][:2], [0, 0])
         self.assertEqual(self.events()[-2]['value'], normal)
         self.assertEqual(event['value'], .5)
 
-    def test_native_poll_cadence_follows_imu_ownership_not_view_mode(self):
+    def test_native_poll_cadence_follows_imu_ownership(self):
         # Re-probe must not recover here: the reader stays closed so the
         # not-owned phases keep slow cadence; owned phase stays fast.
         self.adapter._reader.open.return_value = False
@@ -394,7 +387,7 @@ class NativeSensorTests(unittest.TestCase):
         self.launcher.run.side_effect = AssertionError("no ADB per sensor frame")
 
     def _tilt_on(self):
-        self.router.change_control_mode('tilt', 'native-one')
+        self.router._apply_control_mode('tilt', 'native-one')
         self.assertEqual(self.status()['mode'], 'tilt')
 
     def status(self):
@@ -426,13 +419,16 @@ class NativeSensorTests(unittest.TestCase):
         self.assertFalse(transport.pushes[0][1])  # live frame, not forced
         self.assertEqual(self.events(), [])  # no synthetic axes, ever
 
-    def test_gamepad_view_still_mirrors_native_tilt(self):
-        # Core always-on semantics: View GAMEPAD governs nothing about
-        # the sticks (always forwarded); the native feed runs so GAME
-        # Gamepad OFF drives from tilt with no View change.
+    def test_gamepad_mode_parks_native_sensor_for_a_stable_display(self):
+        # Gamepad mode parks the guest accelerometer at the flat pose instead
+        # of mirroring the Deck IMU: the game window requests
+        # SENSOR_LANDSCAPE, so a live feed lets Deck handling re-decide the
+        # guest display rotation, and the emulator renders every such change
+        # 90 degrees off (sideways portrait strip). Sticks are still
+        # forwarded; live tilt belongs to Tilt Drive.
         transport = FakeSensorTransport()
         self.router._sensor_transport = transport
-        self.router.change_control_mode('gamepad', 'native-gamepad')
+        self.router._apply_control_mode('gamepad', 'native-gamepad')
         self.assertEqual(self.status()['mode'], 'gamepad')
         self.adapter._open = True
         self.adapter._estimator._roll = 0.15
@@ -440,11 +436,13 @@ class NativeSensorTests(unittest.TestCase):
         self.adapter._estimator._last_ts = __import__('time').monotonic()
         self.out.seek(0)
         self.out.truncate()
-        with mock.patch.object(self.adapter, 'consume_motion') as consume:
+        transport.pushes.clear()
+        with mock.patch.object(self.adapter, 'consume_motion') as consume, \
+             mock.patch.object(self.adapter, 'sensor_acceleration') as live_vector:
             self.router._mirror_native_sensor()
         consume.assert_not_called()
-        self.assertEqual(len(transport.pushes), 1)
-        self.assertGreater(transport.pushes[0][0][0], 0.0)
+        live_vector.assert_not_called()
+        self.assertEqual([p[0] for p in transport.pushes], [runner.NEUTRAL_ACCELERATION])
         self.assertEqual(self.out.getvalue(), b"")  # no virtual stick frames
 
     def test_physical_buttons_unaffected_by_live_native_push(self):
@@ -465,10 +463,12 @@ class NativeSensorTests(unittest.TestCase):
         self.assertTrue(transport.pushes)
 
     def test_leaving_tilt_keeps_native_session_open(self):
+        # Leaving Tilt Drive reuses the same console session to park the
+        # guest sensor; no reconnect, no dropped sink.
         transport = FakeSensorTransport()
         self.router._sensor_transport = transport
         self._tilt_on()
-        self.router.change_control_mode('gamepad', 'native-two')
+        self.router._apply_control_mode('gamepad', 'native-two')
         self.assertIs(self.router._sensor_transport, transport)
         self.assertFalse(transport.closed)
         self.adapter._estimator._roll = 0.1
@@ -495,7 +495,7 @@ class NativeSensorTests(unittest.TestCase):
                                   side_effect=AssertionError("stale must not use live angles")):
             self.router._mirror_native_sensor()
             self.router._mirror_native_sensor()
-        self.assertEqual([p[0] for p in transport.pushes], [(0.0, 0.0, 9.81)])
+        self.assertEqual([p[0] for p in transport.pushes], [runner.NEUTRAL_ACCELERATION])
         self.assertTrue(all(p[1] for p in transport.pushes))
 
     def test_reconnect_backoff_never_spins_per_frame(self):
@@ -511,20 +511,6 @@ class NativeSensorTests(unittest.TestCase):
         self.assertEqual(len(created), 1)
         self.assertEqual(self.router._native_state, "unavailable")
         self.assertIn("Gamepad", self.router._native_error)
-
-    def test_panel_open_levels_sensor_and_suppresses_live_push(self):
-        transport = FakeSensorTransport()
-        self.router._sensor_transport = transport
-        self._tilt_on()
-        transport.pushes.clear()
-        self.router.open_controls_panel()
-        self.assertTrue(transport.pushes)
-        self.assertEqual(transport.pushes[-1][0], (0.0, 0.0, 9.81))
-        transport.pushes.clear()
-        with mock.patch.object(self.adapter, 'consume_motion') as consume:
-            self.router._mirror_native_sensor()
-        consume.assert_not_called()
-        self.assertEqual(transport.pushes, [])
 
     def test_native_failure_keeps_gate_and_spares_buttons(self):
         self.router._sensor_transport = FakeSensorTransport(connected=False)
@@ -638,6 +624,8 @@ class NativeSensorTests(unittest.TestCase):
             self.router._tilt_adapter = adapter
             transport = FakeSensorTransport()
             self.router._sensor_transport = transport
+            self._tilt_on()  # live-vector stability is a Tilt Drive contract
+            adapter._estimator._last_ts = _time.monotonic()  # arming reset it
             with __import__("unittest.mock", fromlist=["x"]).patch.object(
                     adapter, "consume_motion") as consume:
                 self.router._push_tilt_to_guest()
@@ -652,7 +640,7 @@ class NativeSensorTests(unittest.TestCase):
             vectors = [vector for vector, _ in pushes]
             for vector in vectors:
                 norm = _math.sqrt(sum(c * c for c in vector))
-                self.assertAlmostEqual(norm, 9.81, delta=0.6)
+                self.assertAlmostEqual(norm, 9.81, delta=0.6)  # |parked pose| is one g
             for prev, cur in zip(vectors, vectors[1:]):
                 dot = sum(a * b for a, b in zip(prev, cur)) / (
                     _math.sqrt(sum(a * a for a in prev)) *

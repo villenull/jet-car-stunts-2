@@ -38,6 +38,7 @@ avd.ini.displayname = JCS2 API28 Google APIs x86
 avd.ini.encoding = UTF-8
 fastboot.forceColdBoot = yes
 fastboot.forceFastBoot = no
+hw.accelerometer = yes
 hw.cpu.arch = x86
 hw.cpu.ncore = 2
 hw.gpu.enabled = yes

@@ -45,4 +45,49 @@ assert normalise_axis_value(0, "LT") == 0.5
 # js1 is a separate sensor node and must never become a generic stick source.
 assert device_layout("Steam Deck Motion Sensors", deck_identity) == "ignore-motion-sensors"
 assert mapped_controls([ABS_X, ABS_Y, ABS_Z, ABS_RX, ABS_RY, ABS_RZ], [], "xbox")[0] == {0: 'LX', 1: 'LY', 2: 'LT', 3: 'RX', 4: 'RY', 5: 'RT'}
+
+# A js node shares its device directory with the evdev node that CAN be
+# grabbed, so that is where the evdev sibling is read from. (js0 -> event7 is
+# this Deck's real layout; the temp tree mirrors it.)
+import errno
+import os
+import tempfile
+from pathlib import Path
+
+from joystick_bridge import EVIOCGRAB, evdev_sibling, exclusive_grab_reason
+
+# _IOW('E', 0x90, int) as spelled by linux/input.h.
+assert EVIOCGRAB == 0x40044590
+with tempfile.TemporaryDirectory() as tmp:
+    root = Path(tmp)
+    device = root / "js0" / "device"
+    device.mkdir(parents=True)
+    (device / "event7").mkdir()
+    (device / "js0").mkdir()
+    (device / "name").write_text("Steam Deck\n")
+    assert evdev_sibling("/dev/input/js0", root) == "/dev/input/event7"
+    assert evdev_sibling("/dev/input/js9", root) is None  # absent node
+    (root / "js1" / "device").mkdir(parents=True)
+    assert evdev_sibling("/dev/input/js1", root) is None  # device with no evdev node
+
+# A device held by another process answers EBUSY; every other failure means
+# "cannot tell" and must stay silent rather than send the reader hunting.
+def probe_busy(path):
+    raise OSError(errno.EBUSY, "Device or resource busy")
+
+def probe_denied(path):
+    raise OSError(errno.EACCES, "Permission denied")
+
+def probe_missing(path):
+    raise OSError(errno.ENOENT, "No such file or directory")
+
+reason = exclusive_grab_reason("/dev/input/event7", probe_busy)
+assert "event7" in reason and "EVIOCGRAB" in reason
+assert exclusive_grab_reason("/dev/input/event7", probe_denied) == ""
+assert exclusive_grab_reason("/dev/input/event7", probe_missing) == ""
+assert exclusive_grab_reason(None, probe_busy) == ""   # unresolved sibling
+assert exclusive_grab_reason("", probe_busy) == ""
+probed = []
+assert exclusive_grab_reason("/dev/input/event7", probed.append) == ""
+assert probed == ["/dev/input/event7"]                 # the resolved node is probed
 print('bridge map-layout tests: PASS')

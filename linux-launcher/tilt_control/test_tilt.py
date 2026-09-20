@@ -1108,7 +1108,22 @@ class TestSensorMapping(unittest.TestCase):
     def test_neutral_is_level_gravity(self):
         from .sensor_transport import acceleration_from_tilt, NEUTRAL_ACCELERATION, GRAVITY
         self.assertEqual(acceleration_from_tilt(0.0, 0.0), (0.0, 0.0, GRAVITY))
-        self.assertEqual(NEUTRAL_ACCELERATION, (0.0, 0.0, GRAVITY))
+
+    def test_parked_pose_is_a_level_gravity_with_a_deterministic_roll(self):
+        # The parked pose is deliberately NOT dead flat: gravity on +Z alone is
+        # ambiguous for the framework's landscape quarter, so the park carries a
+        # ~2 degree roll (measured 2026-09-18: one console rotate flipped the
+        # guest display 1 -> 3 with the display pin in place). Magnitude stays one
+        # g so the game's own tilt reading stays neutral.
+        from .sensor_transport import NEUTRAL_ACCELERATION, GRAVITY, PARKED_ROLL_DEGREES
+        ax, ay, az = NEUTRAL_ACCELERATION
+        self.assertLess(ax, 0.0)                       # negative X -> landscape quarter 1
+        self.assertEqual(ay, 0.0)
+        self.assertGreater(az, 0.0)
+        self.assertAlmostEqual(math.dist((0.0, 0.0, 0.0), NEUTRAL_ACCELERATION), GRAVITY, delta=0.02)
+        roll = math.degrees(math.atan2(abs(ax), az))
+        self.assertAlmostEqual(roll, PARKED_ROLL_DEGREES, delta=0.2)
+        self.assertLess(roll, 5.0)                     # inside any input dead zone
 
     def test_roll_right_positive_ax(self):
         from .sensor_transport import acceleration_from_tilt, GRAVITY

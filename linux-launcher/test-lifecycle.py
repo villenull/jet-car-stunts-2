@@ -209,7 +209,8 @@ class LifecycleTests(unittest.TestCase):
     def test_stop_after_each_startup_stage_prevents_later_stages(self):
         stages = ('acquire_launch_locks', 'preflight', 'start_server', 'start_emulator',
                   'orient_visible_emulator', 'isolate_guest',
-                  'verify_packages', 'start_controller', 'start_input', 'launch_game', 'verify_gamescope_window')
+                  'verify_packages', 'start_controller', 'start_input', 'launch_game',
+                  'verify_gamescope_window', 'align_visible_emulator')
         for index, cancelled_stage in enumerate(stages):
             with self.subTest(stage=cancelled_stage):
                 launcher = self.launcher()
@@ -220,6 +221,208 @@ class LifecycleTests(unittest.TestCase):
                 for name in stages[index + 1:]:
                     getattr(launcher, name).assert_not_called()
                 launcher.run_until_stop.assert_not_called()
+
+    def rotation_launcher(self):
+        launcher = self.launcher()
+        launcher.args = argparse.Namespace(headless=False)
+        launcher.console_send = mock.Mock()
+        return launcher
+
+    def test_host_rotation_steps_keep_the_render_invariant(self):
+        # The host window renders upright only while emulator offset +
+        # guest display rotation == 0 (mod 4); each rotate advances the offset
+        # by one, so the steps must preserve that relation across a change.
+        for aligned_rotation in range(4):
+            offset = (4 - aligned_rotation) % 4  # the pair that renders upright
+            for moved_rotation in range(4):
+                with self.subTest(aligned=aligned_rotation, moved=moved_rotation):
+                    steps = runner.Launcher.host_rotation_steps(moved_rotation, aligned_rotation)
+                    self.assertLess(steps, 4)
+                    self.assertEqual((offset + steps + moved_rotation) % 4, 0)
+
+    def test_align_provokes_one_quarter_turn_then_lets_the_picture_decide(self):
+        launcher = self.rotation_launcher()
+        launcher.wait_for_guest_display_rotation = mock.Mock(return_value=3)
+        launcher.provoke_guest_display_rotation = mock.Mock(return_value=1)
+        launcher.verify_visible_render = mock.Mock(return_value=0)
+        launcher.guest_display_rotation = mock.Mock(return_value=1)
+        launcher.lock_guest_display_rotation = mock.Mock(return_value=True)
+        launcher.align_visible_emulator()
+        # Guest moved 3 -> 1 (delta 2): two rotates are the candidate, and the
+        # measured picture is what confirms (or corrects) them.
+        self.assertEqual(launcher.console_send.call_args_list, [mock.call('rotate')] * 2)
+        launcher.verify_visible_render.assert_called_once_with(1)
+        self.assertEqual(launcher._aligned_guest_rotation, 1)
+        launcher.lock_guest_display_rotation.assert_called_once_with(1)
+        rows = [call.args[0] for call in launcher.log.call_args_list if call.args]
+        self.assertIn('stage=display-orientation-candidate', rows)
+        self.assertIn('stage=display-orientation-aligned', rows)
+
+    def test_align_pins_the_quarter_the_corrections_settled_on(self):
+        # Rotating the window also moves the guest quarter, so the pin must
+        # follow the corrections, not the delta the candidate was built from.
+        launcher = self.rotation_launcher()
+        launcher.wait_for_guest_display_rotation = mock.Mock(return_value=3)
+        launcher.provoke_guest_display_rotation = mock.Mock(return_value=1)
+        launcher.verify_visible_render = mock.Mock(return_value=0)
+        launcher.guest_display_rotation = mock.Mock(return_value=3)
+        launcher.lock_guest_display_rotation = mock.Mock(return_value=True)
+        launcher.align_visible_emulator()
+        launcher.lock_guest_display_rotation.assert_called_once_with(3)
+        self.assertEqual(launcher._aligned_guest_rotation, 3)
+
+    def test_align_never_pins_a_render_it_measured_wrong(self):
+        # The pin is what stops the accelerometer from moving the display, so
+        # pinning a measured-wrong render is what made a strip permanent
+        # (measured 2026-09-18): the align stage must leave it unpinned instead.
+        launcher = self.rotation_launcher()
+        launcher.wait_for_guest_display_rotation = mock.Mock(return_value=3)
+        launcher.provoke_guest_display_rotation = mock.Mock(return_value=1)
+        launcher.verify_visible_render = mock.Mock(return_value=None)
+        launcher._last_measured_offset = 1
+        launcher.guest_display_rotation = mock.Mock(return_value=1)
+        launcher.lock_guest_display_rotation = mock.Mock(return_value=True)
+        launcher.unpin_guest_display_rotation = mock.Mock()
+        launcher.align_visible_emulator()
+        launcher.lock_guest_display_rotation.assert_not_called()
+        launcher.unpin_guest_display_rotation.assert_called_once_with()
+        rows = [call.args[0] for call in launcher.log.call_args_list if call.args]
+        self.assertIn('stage=display-orientation-unpinned', rows)
+
+    def test_a_persisted_pin_is_held_without_any_probe_cycle(self):
+        # The provocation cycle exists only to make the emulator re-lay-out its
+        # window; a lane whose last render measured upright already has that
+        # layout, so the hold re-applies the proven state and just measures it.
+        launcher = self.rotation_launcher()
+        launcher.load_display_pin = mock.Mock(return_value=1)
+        launcher.lock_guest_display_rotation = mock.Mock(return_value=True)
+        launcher.measure_settled_frame = mock.Mock(return_value=(0, 0.05))
+        launcher.save_display_pin = mock.Mock()
+        launcher.wait_for_guest_display_rotation = mock.Mock(side_effect=AssertionError("no probe cycle"))
+        launcher.provoke_guest_display_rotation = mock.Mock(side_effect=AssertionError("no probe cycle"))
+        with mock.patch.object(runner, 'RENDER_VERIFY_SETTLE_SECONDS', 0):
+            launcher.align_visible_emulator()
+        park = runner.format_sensor_set(runner.NEUTRAL_ACCELERATION).decode().strip()
+        self.assertEqual(launcher.console_send.call_args_list, [mock.call(park)])
+        launcher.lock_guest_display_rotation.assert_called_once_with(1)
+        launcher.save_display_pin.assert_called_once_with(1)
+        self.assertEqual(launcher._aligned_guest_rotation, 1)
+        rows = [call.args[0] for call in launcher.log.call_args_list if call.args]
+        self.assertIn('stage=display-pin-honoured', rows)
+
+    def test_a_pin_that_loses_the_picture_mid_streak_is_not_honoured(self):
+        # The window is still settling for the first seconds after the game
+        # resumes, so an upright read is not a verdict on its own: the hold is
+        # honoured only while every settled read stays upright.
+        launcher = self.rotation_launcher()
+        launcher.load_display_pin = mock.Mock(return_value=1)
+        launcher.lock_guest_display_rotation = mock.Mock(return_value=True)
+        launcher.measure_settled_frame = mock.Mock(side_effect=[(0, 0.05), (0, 0.05), (1, 0.6)])
+        launcher.unpin_guest_display_rotation = mock.Mock()
+        launcher.save_display_pin = mock.Mock()
+        launcher.wait_for_guest_display_rotation = mock.Mock(return_value=1)
+        launcher.provoke_guest_display_rotation = mock.Mock(return_value=3)
+        launcher.verify_visible_render = mock.Mock(return_value=0)
+        launcher.guest_display_rotation = mock.Mock(return_value=3)
+        with mock.patch.object(runner, 'RENDER_VERIFY_SETTLE_SECONDS', 0):
+            launcher.align_visible_emulator()
+        launcher.unpin_guest_display_rotation.assert_called_once_with()
+        launcher.save_display_pin.assert_called_once_with(3)
+        self.assertEqual(launcher.measure_settled_frame.call_count, 3)
+        rows = [call.args[0] for call in launcher.log.call_args_list if call.args]
+        self.assertIn('stage=display-pin-missed', rows)
+
+    def test_a_pin_that_does_not_measure_upright_runs_the_full_align(self):
+        launcher = self.rotation_launcher()
+        launcher.load_display_pin = mock.Mock(return_value=3)
+        launcher.lock_guest_display_rotation = mock.Mock(return_value=True)
+        launcher.measure_settled_frame = mock.Mock(return_value=(1, 0.6))
+        launcher.unpin_guest_display_rotation = mock.Mock()
+        launcher.save_display_pin = mock.Mock()
+        launcher.wait_for_guest_display_rotation = mock.Mock(return_value=1)
+        launcher.provoke_guest_display_rotation = mock.Mock(return_value=3)
+        launcher.verify_visible_render = mock.Mock(return_value=0)
+        launcher.guest_display_rotation = mock.Mock(return_value=3)
+        with mock.patch.object(runner, 'RENDER_VERIFY_SETTLE_SECONDS', 0):
+            launcher.align_visible_emulator()
+        launcher.unpin_guest_display_rotation.assert_called_once_with()
+        launcher.verify_visible_render.assert_called_once_with(3)
+        launcher.save_display_pin.assert_called_once_with(3)
+        self.assertEqual(launcher._aligned_guest_rotation, 3)
+        rows = [call.args[0] for call in launcher.log.call_args_list if call.args]
+        self.assertIn('stage=display-pin-missed', rows)
+
+    def test_the_pin_round_trips_and_unusable_state_is_ignored(self):
+        launcher = self.launcher()
+        self.assertIsNone(launcher.load_display_pin())          # nothing persisted yet
+        launcher.save_display_pin(3)
+        self.assertEqual(launcher.load_display_pin(), 3)
+        path = launcher.display_pin_path()
+        path.write_text("not json", encoding="utf-8")
+        self.assertIsNone(launcher.load_display_pin())
+        path.write_text(json.dumps({"schema": 1, "user_rotation": 9}), encoding="utf-8")
+        self.assertIsNone(launcher.load_display_pin())
+
+    def test_align_skips_when_the_guest_never_moves(self):
+        launcher = self.rotation_launcher()
+        launcher.wait_for_guest_display_rotation = mock.Mock(return_value=3)
+        launcher.provoke_guest_display_rotation = mock.Mock(return_value=None)
+        launcher.align_visible_emulator()
+        launcher.console_send.assert_not_called()
+        self.assertIsNone(launcher._aligned_guest_rotation)
+        self.assertTrue(any(call.args and call.args[0] == 'display-alignment-skipped'
+                            for call in launcher.log.call_args_list))
+
+    def test_provoke_moves_the_guest_quarter_turn_then_parks_the_sensor(self):
+        launcher = self.rotation_launcher()
+        launcher.wait_for_guest_display_rotation = mock.Mock(return_value=1)
+        self.assertEqual(launcher.provoke_guest_display_rotation(3), 1)
+        self.assertEqual(launcher.console_send.call_args_list, [
+            mock.call('sensor set acceleration 9.810:0.000:0.000'),
+            mock.call(runner.format_sensor_set(runner.NEUTRAL_ACCELERATION).decode().strip())])
+        self.assertEqual(launcher.wait_for_guest_display_rotation.call_args_list,
+                         [mock.call(exclude=3)])
+        # Portrait has no landscape probe: never nudge the guest there.
+        launcher.console_send.reset_mock()
+        self.assertIsNone(launcher.provoke_guest_display_rotation(0))
+        launcher.console_send.assert_not_called()
+
+    def test_align_does_nothing_when_the_guest_rotation_never_settles_landscape(self):
+        launcher = self.rotation_launcher()
+        launcher.wait_for_guest_display_rotation = mock.Mock(return_value=None)
+        launcher.align_visible_emulator()
+        launcher.console_send.assert_not_called()
+        self.assertIsNone(launcher._aligned_guest_rotation)
+        self.assertTrue(any(call.args and call.args[0] == 'display-alignment-skipped'
+                            for call in launcher.log.call_args_list))
+
+    def test_guard_repairs_only_after_the_guest_rotation_moves(self):
+        launcher = self.rotation_launcher()
+        launcher.adb = mock.Mock(return_value=mock.Mock(
+            returncode=0, stdout='    mCurrentOrientation=3\n', stderr=''))
+        launcher._aligned_guest_rotation = 3
+        launcher.guard_display_orientation()
+        launcher.console_send.assert_not_called()
+        # Guest flipped to the other landscape quarter: two steps restore it.
+        launcher.adb.return_value = mock.Mock(returncode=0, stdout='    mCurrentOrientation=1\n', stderr='')
+        launcher.guard_display_orientation()
+        # A guard burst also re-parks the accelerometer (user directive
+        # 2026-09-18): leaving the feed live is what let a corrected rotation
+        # move again.
+        self.assertEqual(
+            launcher.console_send.call_args_list,
+            [mock.call('rotate')] * 2
+            + [mock.call(runner.format_sensor_set(runner.NEUTRAL_ACCELERATION).decode().strip())],
+        )
+        self.assertEqual(launcher._aligned_guest_rotation, 1)
+        self.assertTrue(any(call.args and call.args[0] == 'display-orientation-repaired'
+                            for call in launcher.log.call_args_list))
+        # An unarmed launcher (never aligned) never probes or rotates.
+        quiet = self.rotation_launcher()
+        quiet.adb = mock.Mock()
+        quiet.guard_display_orientation()
+        quiet.adb.assert_not_called()
+        quiet.console_send.assert_not_called()
 
     def test_top_level_preserves_failure_and_reports_cleanup_failure(self):
         launcher = mock.Mock()
@@ -319,7 +522,6 @@ class GameQuitWatcherTests(unittest.TestCase):
             setattr(launcher, owned, child)
         launcher.window_guard = None
         launcher.router = mock.Mock()
-        launcher.router._controls_panel = None
         launcher.router.bridge = None
         # Each pump advances the fake clock past the poll interval so every
         # loop iteration performs exactly one foreground poll.
@@ -504,21 +706,6 @@ class GameQuitWatcherTests(unittest.TestCase):
         result2, _ = self.drive(launcher2, dumpsys2, pidof2, max_polls=3)
         self.assertEqual(result2, 130)
         self.assertEqual(self.logged(launcher2, 'stage=game-quit'), [])
-
-    def test_open_settings_panel_suppresses_quit_then_quit_after_close(self):
-        launcher = self.launcher()
-        launcher.router._controls_panel = mock.Mock()  # panel open
-        dumpsys = [_adb_result(HOME_DUMPSYS)] * 5  # genuine quit shape, must not fire
-        result, calls = self.drive(launcher, dumpsys, [PIDOF_DEAD] * 5, max_polls=5)
-        self.assertEqual(result, 130)
-        self.assertEqual(self.logged(launcher, 'stage=game-quit'), [])
-        self.assertEqual(self.logged(launcher, 'game-poll-quit-candidate'), [])
-        self.assertEqual(calls, [])  # no foreground probe while the panel is open
-        # Panel closed: the same sustained foreground now completes.
-        launcher.router._controls_panel = None
-        launcher.stop_requested = False
-        result, _ = self.drive(launcher, [_adb_result(HOME_DUMPSYS)] * 4, [PIDOF_DEAD] * 4)
-        self.assertEqual(result, 0)
 
     def test_emulator_crash_still_raises_instead_of_clean_quit(self):
         launcher = self.launcher()

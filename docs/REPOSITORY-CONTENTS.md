@@ -28,11 +28,11 @@ none exists, so no ancestor instructions apply.
 
 | Category | Tracked paths |
 |---|---|
-| Repo config + docs | `.gitignore`, `README.md`, `docs/REPOSITORY-CONTENTS.md`, `docs/CONTINUATION.md`, `docs/SETUP.md`, `docs/RESTORE-2026-09-17.md` |
+| Repo config + docs | `.gitignore`, `README.md`, `docs/REPOSITORY-CONTENTS.md`, `docs/CONTINUATION.md`, `docs/CONTINUATION-2026-09-18.md`, `docs/SETUP.md`, `docs/RESTORE-2026-09-17.md`, `docs/PAUSED-2026-09-17.md`, `docs/REINSTALL-2026-09-17.md` |
 | Offline test entrypoints | `run-offline-tests.py`, `run-jcs2` |
 | Controller (Go + Java helper source) | `controller/*.go`, `controller/go.mod`, `controller/mapping.json`, `controller/example.ndjson`, `controller/cmd/jcs2-controller/*.go`, `controller/helper-src/Jcs2InputHelper.java`, `controller/*.md` |
 | Windows launcher (source only) | `launcher/launcher.cpp`, `launcher/logic.hpp`, `launcher/build.ps1`, `launcher/prepare-personal-runtime.ps1`, `launcher/launcher.ini.example`, `launcher/README.md`, `launcher/CURRENT-STATUS.md`, `launcher/support/JCS2-Start-and-Collect.cmd`, `launcher/support/Start-and-Collect.ps1`, `launcher/tests/test_launcher.py`, `launcher/tests/logic_test.cpp`, `launcher/tests/windows-mock/run_windows_mock.py`, `launcher/tests/windows-mock/mock_controller.cpp`, `launcher/tests/windows-mock/mock_tool.cpp` |
-| Linux launcher (Python source only) | `linux-launcher/*.py` (incl. `runner.py`, `runtime_paths.py`, `joystick_bridge.py`, `gamescope_window.py`, `bridge_side_channel.py`, `controls_settings.py`, `progression_choice.py`, `audio_config.py`, `menu_*.py`), `linux-launcher/*.sh`, `linux-launcher/navigation_v2/*.py`, `linux-launcher/overlay/*.py`, `linux-launcher/tilt_control/*.py`, `linux-launcher/tests/*.py`, `linux-launcher/README.md` |
+| Linux launcher (Python source only) | `linux-launcher/*.py` (incl. `runner.py`, `runtime_paths.py`, `joystick_bridge.py`, `gamescope_window.py`, `bridge_side_channel.py`, `progression_choice.py`, `audio_config.py`, `menu_*.py`), `linux-launcher/*.sh`, `linux-launcher/navigation_v2/*.py`, `linux-launcher/overlay/*.py`, `linux-launcher/tilt_control/*.py`, `linux-launcher/tests/*.py`, `linux-launcher/README.md` |
 | Steam integration (source only) | `steam/*.py`, `steam/*.sh`, `steam/*.md`, `steam/controller-notes.txt`, `steam/artwork/ASSETS.md`, `steam/artwork/PROVENANCE.md`, `steam/artwork/icon.png` (192×192 unmodified game icon, hash in PROVENANCE.md) |
 | Packaging / distribution planning | `packaging/*.py`, `packaging/*.md`, `packaging/*.json`, `packaging/installer/runtime-lock.json`, `packaging/installer/licenses/*.txt` |
 | Game-fix patch scripts + manifests | `game-fixes/**/[*.py, *.sh, *.json, *.md]` across `audio/`, `controls/`, `editor-save/`, `maps/`, `personal-deploy/` — patch/compose/verify/test scripts and sanitized JSON/MD manifests only |
@@ -50,7 +50,7 @@ both baked-checkerboard REJECTED logo renders.
 |---|---|
 | Full device/PC backups + images | `backups/` (incl. `private-direct-*`, `private-jcs2-*`, `20260909T211807Z`, `usb-*`, `steam-grid-*`, `steam-shortcut-*`), `backup.ab`, `androguard.db` |
 | Runtime SDK / toolchains / guests | `runtime/` (bundled CPython 3.12 tree), `tools/` (go tarball+tree, llvm-mingw, platform-tools), `dist/` (Windows personal tree + SDK/emulator + APK sets) |
-| Analysis + staging scratch | `analysis/` (emulator logs, AVDs, APK copies, owneronly key dir, third-party APKs), `staging/` (per-attempt APK sets, `.so` candidates, videos, mem dumps, incl. the still-existing `staging/editor-save-20260915T010000Z` compose stage) |
+| Analysis + staging scratch | `analysis/` (emulator logs, AVDs, APK copies, owneronly key dir, third-party APKs), `staging/` (per-attempt APK sets, `.so` candidates, videos, mem dumps, incl. the former `staging/editor-save-20260915T010000Z` compose stage, gone since the 2026-09-17 wipe) |
 | Decompile/binary drops | `luna-inspection-20260909T212750Z/`, `opus-review-20260909T213500Z/` |
 | Proprietary payloads inside staged trees | `game-fixes/audio/candidate*/libtrueaxis.so.patched` + `provenance.json`/`REJECTED.json` beside them; `progression-unlock/assets/*.apk`, `*.png`, `*.log` (evidence captures) |
 | Built Windows/Linux binaries | `launcher/*.exe`, `linux-launcher/jcs2-controller-linux`, `linux-launcher/jcs2-input-helper.jar` (build output; source `.java` IS tracked) |
@@ -104,8 +104,8 @@ sockets; no emulator/ADB/X11/motion/Steam/session). On a fresh clone:
 
 - Required: `python3` (stdlib only; the minimum version the suites are
   known-good on is not established — 3.14 is this host's version;
-  `tkinter`/Tcl 9 needed ONLY for the optional `--control-settings` panel,
-  not for tests), Go ≥ 1.21 per `controller/go.mod` for `go test ./...`,
+  `tkinter`/Tcl 9 needed ONLY for the progression-choice panel
+  (`progression_choice.py`, imported lazily), not for tests or the lane), Go ≥ 1.21 per `controller/go.mod` for `go test ./...`,
   room for ~10 MB of tracked artwork + sources.
 - NOT required: Android SDK, emulator, system images, AVD guest, APKs, Steam,
   ADB devices, `/dev/uhid`, joystick/motion hardware.
@@ -115,14 +115,18 @@ sockets; no emulator/ADB/X11/motion/Steam/session). On a fresh clone:
   `analysis/...` paths only as expected default strings, not as live inputs).
 - Local-only fixtures staying on the owner's machine (needed for live and
   packaging work, NOT for offline tests): authorized game APK split set
-  (`backups/usb-20260910T005449Z/`, `dist/.../assets/game/`), preserved
+  (off-Deck backup `~/jcs2-deck-backup-20260920/`, `~/Downloads/com.trueaxis.jetcarstunts2.apk`), preserved
   `hardened_api28` guest + Linux SDK/system-image trees (under `analysis/`),
   `runtime/ui-python`, portable `runtime/sdk` + `state/avd` layout (prepared
   later per `packaging/README.md`), Steam grid backups, private `.ab` payloads.
-- Known gap: a fresh-guest bootstrap (create AVD + install game + helper) does
-  not exist yet — `packaging/DISTRIBUTION.md` marks the installer "not yet
-  built". Offline suites do not cover it; Gaming Mode window/touch/tilt/audio
-  remain user-run live checks.
+- The fresh-guest bootstrap **now exists**: `packaging/bootstrap_linux_guest.py`
+  plus the setup entry point `packaging/installer/{setup-jcs2.sh,install_jcs2.py}`
+  and `packaging/installer/runtime-lock.json`. Two suites cover them offline
+  (`packaging/test_bootstrap_linux_guest.py`, `packaging/installer/tests/`).
+  What is still open is not the code but the target: one end-to-end
+  `--execute` on a real SteamOS host with the real payload
+  (`docs/CONTINUATION.md` §9.7/§9.8). Gaming Mode
+  window/touch/tilt/audio remain user-run live checks.
 
 ## Reviewing the index
 

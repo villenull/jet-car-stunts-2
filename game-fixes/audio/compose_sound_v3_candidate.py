@@ -85,9 +85,10 @@ def main(argv=None) -> int:
         "truthful_label": ("flag locked LOW at both writers; labels always "
                            "read LOW LATENCY; Sound-row taps are safe no-ops; "
                            "saved-HIGH normalizes at boot with no data clear"),
-        "panel_note": ("controls_settings.py:84 reword owned by tilt/reviewer "
-                       "d853d417; applies ONLY with actual personal deploy, "
-                       "never prematurely (note is accurate for unpatched builds)"),
+        "panel_note": ("SUPERSEDED 2026-09-18: the launcher panel that carried "
+                       "the sound-mode note (controls_settings.py:84) was removed "
+                       "with the driving-mode panel, so this tree owes no reword; "
+                       "the reword applied only to a build still carrying the panel"),
         "assembler": ("game-fixes/audio/compose_sound_v3_candidate.py reusing "
                       "maps faithful repack + one-key sign by import only"),
         "live_gate": ("isolated slot only, root-granted after maps release; "

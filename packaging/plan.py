@@ -9,12 +9,67 @@ import struct
 SDK = 'analysis/arm-runtime-20260910T010130Z/runtime/sdk'
 AVD = 'analysis/hardened-runtime-20260910T150000Z/avdhome'
 IMAGE = 'system-images/android-28/google_apis/x86'
-FILES = ['run-jcs2', 'steam/jcs2-steam-launch.sh'] + [
-    'linux-launcher/' + name for name in (
-        'runner.py', 'runtime_paths.py', 'controls_settings.py', 'progression_choice.py', 'audio_config.py', 'jcs2-launcher.sh', 'joystick_bridge.py',
-        'bridge_side_channel.py', 'gamescope_window.py', 'jcs2-controller-linux',
-        'jcs2-input-helper.jar', 'tilt_control/__init__.py', 'tilt_control/adapter.py',
-        'tilt_control/estimator.py', 'tilt_control/motion_reader.py', 'tilt_control/sensor_transport.py', 'tilt_control/settings.py')]
+# Launcher payload, split by kind so the text-only setup archive can never
+# carry a compiled binary. LAUNCHER_FILES is the import closure of runner.py
+# plus the shell entry points (run-jcs2 -> jcs2-launcher.sh -> python-select.sh,
+# steam/jcs2-steam-launch.sh -> python-select.sh); LAUNCHER_BINARIES are built
+# or fetched locally and are therefore excluded from the setup archive.
+LAUNCHER_FILES = [
+    'linux-launcher/jcs2-launcher.sh',
+    'linux-launcher/python-select.sh',
+    'linux-launcher/runner.py',
+    'linux-launcher/runtime_paths.py',
+    'linux-launcher/progression_choice.py',
+    'linux-launcher/audio_config.py',
+    'linux-launcher/deck_pad.py',
+    'linux-launcher/qt_settings.py',
+    'linux-launcher/joystick_bridge.py',
+    'linux-launcher/bridge_side_channel.py',
+    'linux-launcher/gamescope_window.py',
+    'linux-launcher/tilt_control/__init__.py',
+    'linux-launcher/tilt_control/adapter.py',
+    'linux-launcher/tilt_control/estimator.py',
+    'linux-launcher/tilt_control/motion_reader.py',
+    'linux-launcher/tilt_control/sensor_transport.py',
+    'linux-launcher/tilt_control/settings.py',
+    'linux-launcher/tilt_control/stick_gate.py',
+]
+LAUNCHER_BINARIES = [
+    'linux-launcher/jcs2-controller-linux',
+    'linux-launcher/jcs2-input-helper.jar',
+]
+STEAM_FILES = ['steam/jcs2-steam-launch.sh', 'steam/steam_shortcut.py', 'steam/binary_vdf.py']
+FILES = ['run-jcs2'] + STEAM_FILES + LAUNCHER_FILES + LAUNCHER_BINARIES
+
+# jet-car-stunts-2-setup.tar.gz ships text only: the Android runtime is fetched
+# from official sources with the pinned hashes in installer/runtime-lock.json,
+# and the game APK set, controller binary, helper JAR and artwork are separate
+# release assets the installer stages from a payload directory. This one list is
+# shared by the archive builder (prepare_distribution.py) and the installer's
+# md5 runtime manifest, so both always describe the same shipped tree.
+SETUP_ENTRY = ('packaging/installer/setup-jcs2.sh', 'setup-jcs2.sh')
+INSTALLER_FILES = [
+    'packaging/installer/install_jcs2.py',
+    'packaging/installer/runtime-lock.json',
+    'packaging/installer/licenses/android-sdk-license.txt',
+    'packaging/installer/licenses/android-sdk-arm-dbt-license.txt',
+    'packaging/installer/licenses/cpython-3.12-LICENSE.txt',
+    'packaging/plan.py',
+    'packaging/bootstrap_linux_guest.py',
+    'packaging/distribution.json',
+]
+SETUP_FILES = ['run-jcs2', 'controller/mapping.json'] + STEAM_FILES + LAUNCHER_FILES + INSTALLER_FILES
+
+
+def setup_entries():
+    """Text files that ship inside jet-car-stunts-2-setup.tar.gz.
+
+    Arcnames mirror the install tree, except for the entry script, which sits at
+    the archive root so it is the first thing a user sees after extraction.
+    """
+    rows = [{'source': SETUP_ENTRY[0], 'destination': SETUP_ENTRY[1], 'kind': 'file'}]
+    rows += [{'source': path, 'destination': path, 'kind': 'file'} for path in SETUP_FILES]
+    return rows
 
 
 def manifest():
@@ -142,5 +197,10 @@ def audit(root):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
+    parser.add_argument('--setup-manifest', action='store_true',
+                        help='print the text-only setup archive file list and exit')
     args = parser.parse_args()
-    print(json.dumps(audit(args.root), indent=2))
+    if args.setup_manifest:
+        print(json.dumps({'entry': SETUP_ENTRY[1], 'files': setup_entries()}, indent=2))
+    else:
+        print(json.dumps(audit(args.root), indent=2))

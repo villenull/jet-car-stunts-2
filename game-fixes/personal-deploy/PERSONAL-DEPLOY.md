@@ -87,9 +87,14 @@ check (both user-driven gates).
 
 ## 7. Audio-note activation (joint, owner-executed, via root)
 
+**SUPERSEDED 2026-09-18:** the panel that carried the note
+(`controls_settings.py:84`, "Sound mode changes take effect after
+restarting the game.") was removed with the driving-mode panel, so this
+tree owes no reword — nothing in the lane displays that sentence any
+more. The step below applies only to a build that still carries the panel.
+
 The build contains sound v3 (taps are safe no-ops, LOW always), which
-invalidates `controls_settings.py:84` ("Sound mode changes take effect
-after restarting the game."). The reword to fixed-Low-Latency truthful
+invalidated that sentence. The reword to fixed-Low-Latency truthful
 text is tilt-owner/reviewer-executed IN THE SAME deploy window (staged
 wording approved by reviewer), never before: the old sentence is
 accurate for unpatched builds. This procedure does not edit UI Python.

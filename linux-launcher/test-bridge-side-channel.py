@@ -23,6 +23,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from bridge_side_channel import BridgeSideChannel
+from joystick_bridge import FMT
 import runner
 
 
@@ -229,6 +230,124 @@ class TestSideChannelIntegration(unittest.TestCase):
             self.assertEqual(parsed["axis"], "LX")
             self.assertAlmostEqual(parsed["value"], steering_curve(0.5))
             router.close()
+
+
+class TestBridgeDeviceLifecycle(unittest.TestCase):
+    """A js node that re-enumerates mid-session must not kill the bridge.
+
+    Gaming Mode's Steam virtual pad is torn down and recreated while a game
+    runs; the open fd then fails reads with ENODEV.  The runner treats a bridge
+    exit as fatal ("joystick bridge exited while game was running"), so the
+    bridge must reopen the SAME node and keep serving - never another device.
+    """
+
+    class FakeFd:
+        """Device node whose first handle dies, like Steam's virtual pad."""
+
+        def __init__(self, path, die_after_events=False, events=()):
+            self.path = path
+            self.die_after_events = die_after_events
+            self.died = False
+            self.events = list(events)
+            self.closed = False
+
+        def fileno(self):
+            return 3
+
+        def read(self, size):
+            if self.events:
+                kind, number, value = self.events.pop(0)
+                return FMT.pack(0, value, kind, number)
+            if self.die_after_events and not self.died:
+                self.died = True
+                raise OSError(19, "No such device")  # node went away
+            return b""  # short read: clean exit(0) after the reopen
+
+        def close(self):
+            self.closed = True
+
+    def _run(self, maps, events=(), layouts=()):
+        import array
+        import joystick_bridge as jb
+        opened = []
+        fds = []
+        layout_queue = list(layouts)
+
+        def fake_maps(path):
+            # Only the first handle dies; the reopened node is healthy.
+            fd = self.FakeFd(path, die_after_events=not opened,
+                             events=events if not opened else ())
+            opened.append(path)
+            fds.append(fd)
+            layout = layout_queue.pop(0) if layout_queue else "xbox"
+            amap = array.array("B", [0, 1, 3, 4, 2, 5])
+            bmap = array.array("H", [304, 305, 307, 308, 310, 311])
+            return fd, "Steam Virtual Gamepad", layout, {"layout": layout}, amap, bmap
+
+        def fake_select(readables, *args):
+            return ([readables[0]], [], [])
+
+        out, err = io.StringIO(), io.StringIO()
+        with mock.patch.object(jb, "joystick_maps", side_effect=fake_maps), \
+             mock.patch.object(jb.select, "select", side_effect=fake_select), \
+             mock.patch.object(jb, "evdev_sibling", return_value=None), \
+             mock.patch.object(jb, "exclusive_grab_reason", return_value=None), \
+             mock.patch.object(jb, "REOPEN_DELAY", 0.0), \
+             mock.patch.dict(os.environ, {"JCS2_JOYSTICK": "/dev/input/js0"}), \
+             contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = jb.main()
+        return code, opened, fds, out.getvalue() + err.getvalue()
+
+    def test_read_failure_reopens_the_same_node_and_keeps_serving(self):
+        code, opened, fds, log = self._run(None)
+        self.assertEqual(code, 0)
+        self.assertEqual(opened, ["/dev/input/js0", "/dev/input/js0"])
+        self.assertIn("re-enumerated; reopened", log)
+        self.assertTrue(fds[0].closed)
+
+    def test_a_vanished_device_releases_every_control_it_held(self):
+        """A stuck throttle after re-enumeration is the failure to prevent.
+
+        The pad vanished with LX at ~0.91 and A held; the guest must be told to
+        release both before the bridge starts waiting for the node to return.
+        """
+        code, opened, fds, log = self._run(
+            None, events=[(2, 0, 30000), (1, 0, 1)])  # LX ~0.91, then A down
+        self.assertEqual(code, 0)
+        published = []
+        for line in log.splitlines():
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(event, dict):
+                published.append(event)
+        self.assertIn({"type": "axis", "axis": "LX", "value": 0.0,
+                       "t_ms": published[-2]["t_ms"]}, published)
+        self.assertIn({"type": "button", "key": "A", "action": "up",
+                       "t_ms": published[-1]["t_ms"]}, published)
+        self.assertIn("released held controls", log)
+
+    def test_reopen_never_adopts_the_motion_sensor_node(self):
+        """Same path is not the same device: the sensor node is not a pad."""
+        code, opened, fds, log = self._run(
+            None, layouts=["xbox", "ignore-motion-sensors", "xbox"])
+        self.assertEqual(code, 0)
+        self.assertEqual(opened, ["/dev/input/js0"] * 3)
+        self.assertIn("re-enumerated; reopened", log)
+        self.assertTrue(fds[1].closed)  # the sensor node handle was dropped
+
+    def test_giving_up_reports_a_distinct_exit(self):
+        import joystick_bridge as jb
+        with mock.patch.object(jb, "REOPEN_ATTEMPTS", 2), \
+             mock.patch.object(jb, "REOPEN_DELAY", 0.0):
+            with mock.patch.object(jb, "joystick_maps",
+                                   side_effect=OSError(19, "No such device")):
+                with mock.patch.dict(os.environ, {"JCS2_JOYSTICK": "/dev/input/js0"}), \
+                     contextlib.redirect_stdout(io.StringIO()), \
+                     contextlib.redirect_stderr(io.StringIO()):
+                    code = jb.main()
+        self.assertEqual(code, 2)  # no readable node at all, never a silent success
 
 
 class TestBridgeSideChannelStandalone(unittest.TestCase):

@@ -8,7 +8,12 @@ Run the preserved, offline Android game from a normal writable home folder:
 
 The launcher owns an API28 `hardened_api28` guest, uses only ADB 5038, console
 5594, and serial `127.0.0.1:5595`, and starts the emulator with 1536 MiB,
-host GPU rendering, `-no-snapshot`, and QEMU `-net none`. It performs narrow
+`-no-snapshot`, and QEMU `-net none`. GPU mode follows the session: `-gpu host`
+on a desktop host whose Hyprland session can be queried, and
+`-gpu swiftshader_indirect` in Gaming Mode, where gamescope owns the output and
+the accelerated path loses the guest's color buffer a few seconds after launch
+(emulator.log `ColorBuffer::create ... gl error 0x502`); `JCS2_GPU` overrides
+either choice. It performs narrow
 root-isolation, verifies shell UID 2000 can read/write `/dev/uhid`, then
 launches the already-installed game without reinstall, restore, wipe, or
 progress reset. The helper package/service is also required and is kept live by
@@ -27,7 +32,11 @@ and socket input mode:
 The launcher prints and logs a per-run Unix socket at
 `analysis/linux-launcher/logs/run-*/input.sock`. Send controlled NDJSON events
 to that socket; they feed the same controller stdin protocol as the physical
-bridge. For example:
+bridge. The socket starts at the runner, so it exercises only the
+runner → controller → guest path: it never reads a js node, so it verifies
+neither the joystick bridge nor a physical device. To exercise the bridge
+without a physical press, put a virtual pad on a js node and pin the bridge to
+it with `JCS2_JOYSTICK=/dev/input/jsN`. For example:
 
 ```sh
 printf '%s\n' '{"type":"button","key":"RB","action":"down","t_ms":0}' \
@@ -98,59 +107,43 @@ portable mode can be used. The resolver never copies, repairs, creates, wipes,
 or reinstalls an AVD. Keep the working guest unchanged. Fresh SteamOS launch
 and saved-progress persistence remain user-operated live checks.
 
-## Touch driving-mode settings
+## Driving mode: gamepad only
 
-The optional **JCS2 Controls** panel offers exactly two driving modes:
-**Left joystick** controls both turning and pitching, or **Tilt** controls both. The panel opens on request and closes before returning to the game. Physical buttons retain their existing
-driving actions. This does not add D-pad menu navigation or digital button
-steering; the non-tilt alternative is the left joystick.
+There is no host-side driving-mode panel and no `--control-settings` launch
+option (both removed 2026-09-18). The lane launches straight into the emulator
+and the game: **Gamepad** is the only driving mode. The physical left stick
+controls turning and pitching together, every button and trigger keeps its
+mapped action, and the game's own Gamepad toggle stays **ON** (with it OFF the
+game ignores the sensor feed entirely).
 
-In Steam, open the existing JCS2 shortcut's **Properties → Launch Options** and
-enter `--control-settings`. On your next launch, tap your driving mode and
-**Save & Play**. Cancel exits before launching the emulator and does not save.
-Remove the option to launch directly with the saved mode. The optional startup panel is separate from the in-session View-button access
-described below.
-The panel uses Python Tk/Tcl, available on the current host; fresh SteamOS
-availability and its appearance/touch focus in Gamescope remain user test items.
+**Tilt Drive is unselectable, not deleted.** The game's window requests
+`SCREEN_ORIENTATION_SENSOR_LANDSCAPE`, so the framework derives the display
+quarter from the very accelerometer the tilt mirror feeds and the picture flips
+whenever the Deck is lifted; this image has no rotation-hold lever. The engine
+under `tilt_control/` is kept intact for an image that can hold the display,
+`TILT_DRIVE_SELECTABLE = False` in `runner.py` closes the selection, and a lane
+that persisted Tilt Drive migrates once to Gamepad at startup with a
+`stage=tilt-drive-disabled` log row. While a persisted Tilt mode is in force the
+LX/LY gate stays armed fail-closed (no silent re-enable of the sticks); the
+retired panel's `control_mode` request is rejected at the runner's input ingress
+and never reaches the guest.
+
+The **View / SELECT** button is an ordinary game button again: it is forwarded
+to the guest like any other press and opens nothing on the host.
 
 Settings persist in the selected launcher log directory's `tilt-settings.json`
 (default `analysis/linux-launcher/logs/tilt-settings.json`, portable
-`state/logs/tilt-settings.json`; `JCS2_LOGDIR` overrides it). CLI and runner now
+`state/logs/tilt-settings.json`; `JCS2_LOGDIR` overrides it). CLI and runner
 share this default; the historical `linux-launcher/tilt-settings.json` path is
-not the active default. No existing settings file was rewritten during development.
+not the active default. Reading an old settings file never rewrites it, with one
+exception: a persisted Tilt mode is migrated to Gamepad once, visibly, at
+startup. Legacy mode-only files remain supported; older per-axis fields are
+accepted only when their effective choices agree, and mixed or invalid values
+resolve to Gamepad.
 
-Tilt requires the physical **Steam Deck Motion Sensors** device, not merely
-Steam's virtual Xbox controller. If the sensor cannot open, physical left-stick
-input remains active on both axes. When Tilt is selected and the sensor opens, both joystick axes are suppressed
-in favor of motion input. Physical direction, pitch feel, calibration,
-and motion-device availability in Gaming Mode still need user testing. The
-panel itself does not open motion devices. Agents did not display the panel or
-interact with the current game to validate it.
-
-Saving a mode updates turning and pitching together in one atomic file write.
-Legacy mode-only files remain supported. Older per-axis fields are accepted
-only when their effective choices agree; mixed or invalid values resolve to
-Left joystick until explicitly changed. Reading old files never rewrites them.
-
-### Switch during a game session
-
-1. Pause the game normally with **Menu / START**.
-2. Press **View** (the small button left of the screen) to open Driving mode.
-3. Tap **Left joystick** or **Tilt**, then **Apply & Return**.
-4. Resume through the game's normal touch menu. The emulator and game stay open.
-
-View opens the panel; its choices and Apply/Return buttons support touch. There
-is no permanent touch overlay or D-pad menu navigation. Opening settings does
-not automatically toggle pause, so pause first. Driving input is neutralized
-while the panel is open. **Return to game** closes it without requesting a new
-mode. Apply waits for the running launcher's acknowledgement; it does not merely
-edit a file and assume the controls changed. If the sensor cannot open, the
-panel reports the failure and keeps the joystick active. Both axes switch
-together, and the effective choice is persisted by the runner.
-
-The panel has its own normal cursor; emulator cursor hiding stays scoped to the
-game window. The runner owns the panel lifecycle and restores the game window
-when it exits. This prepared in-session flow still needs user validation for
-View delivery under Steam Input, touch/focus return, and physical tilt behavior.
-It does not modify an already-running launcher process: the updated launcher
-code takes effect on the user's next normal game launch.
+Tilt Drive requires the physical **Steam Deck Motion Sensors** device, not
+merely Steam's virtual Xbox controller. With Tilt unselectable that device is
+only mirrored as the native accelerometer feed; the runner never synthesizes
+IMU axes (`consume_motion` is never called), so Deck tilt reaches the game only
+as Android accelerometer vectors. The runner's mode is reported in the run
+directory's `control-mode.json`.

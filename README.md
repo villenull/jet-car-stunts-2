@@ -11,6 +11,10 @@ Full handoff: [`docs/CONTINUATION.md`](docs/CONTINUATION.md).
 Provisioning + fresh-clone limits: [`docs/SETUP.md`](docs/SETUP.md).
 Restore (2026-09-17, Deck fully wiped — start here): [`docs/RESTORE-2026-09-17.md`](docs/RESTORE-2026-09-17.md).
 
+**Paused state + wipe safety + clean-machine redeploy recipe (2026-09-20):
+[`docs/CONTINUATION.md`](docs/CONTINUATION.md) §9 — read §9 first.** Overnight
+Deck report: [`docs/CONTINUATION-2026-09-18.md`](docs/CONTINUATION-2026-09-18.md).
+
 ## What this repo is
 
 Host-side launcher and tooling that runs the preserved offline Android game
@@ -22,30 +26,40 @@ reinstall/uninstall the personal guest.
 
 ## Current truth (2026-09-16, verified from source + latest curated reports)
 
-- **TiltDrive host gate implemented in repo, offline-reviewed.** Selector
-  Gamepad (sticks) / Tilt Drive (buttons) in `linux-launcher/controls_settings.py`;
-  gate `linux-launcher/tilt_control/stick_gate.py` drops **only LX/LY** when
-  persisted Tilt is armed, preserving pedals/buttons; in-game Gamepad stays
-  **ON**. Full offline suite **449/449 OK** (re-ran 2026-09-16, 16 suites) plus
-  bounded integration review. Details in `docs/CONTINUATION.md`.
+- **TiltDrive host gate implemented in repo, offline-reviewed — and UNSELECTABLE
+  since 2026-09-18.** The driving-mode panel (`linux-launcher/controls_settings.py`,
+  including its `--control-settings` pre-launch screen) was removed on
+  2026-09-18: Gamepad is the only mode, the runner rejects any `control_mode`
+  request at its input ingress, and `TILT_DRIVE_SELECTABLE = False` in
+  `linux-launcher/runner.py` closes the selection, because the
+  game's window requests `SCREEN_ORIENTATION_SENSOR_LANDSCAPE`
+  (`dumpsys window tokens`: `mOrientation=6`), so the framework derives the
+  display quarter from the very accelerometer the tilt mirror feeds and the
+  picture flips whenever the Deck is lifted; this AVD image has no rotation-hold
+  lever (`wm user-rotation` and `cmd window user-rotation` are unknown commands).
+  The gate `linux-launcher/tilt_control/stick_gate.py` and the whole engine are
+  kept intact, and a lane that persisted Tilt Drive migrates once to Gamepad
+  with a `stage=tilt-drive-disabled` row. In-game Gamepad stays **ON**.
 - **Physical tilt is still a user gate.** In-game Gamepad ON moves the
   calibration indicator; OFF freezes it. In-race tilt steering authority is
   **UNVERIFIED**; brake-vs-gas is one spawn-locked datapoint (LT held parked
   vs full gas) with the trigger-conflict alternative open.
 - **Quit:** the Sept-14 detection + owned-hide/teardown fix is implemented
-  (old real-run root cause already executed in code). A concurrent-edit
-  transient (446/449 mid-edit, documented collision, not a quit regression)
-  settles to **449/449** on settled disk. Real GamingMode presentation
+  (old real-run root cause already executed in code). Offline matrix re-run
+  2026-09-20 is **546/546 across 17 suites** (`docs/CONTINUATION.md` §3).
+  Real GamingMode presentation
   (hide → Steam UI, no home flash, ≤ ~8 s emulator exit) is **user-check
   pending**.
 - **Sound:** stable mode is **v3 fixed LOW** (`game-fixes/audio/`, sites
   `0x154a7c`/`0x11e318`/`0x154a1c`). All cycling variants are
   **REJECTED** (crash risk) — do not retry without new root approval.
-- **Personal guest:** old canonical unlock baseline, DB86 key, versionCode 29,
-  installed, intact; personal stable LOW already installed — no duplicate
-  redeploy is queued. Editor candidate `cb2bd45b` (45 changed bytes vs pristine)
-  was composed offline into the still-existing local stage
-  `staging/editor-save-20260915T010000Z` (local-only, not in git), used only in
+- **Personal guest:** canonical unlock baseline (six-sentinel native patch,
+  final lib `cb2bd45b…ffb1`), `versionCode 29`, single-APK monolith signed with
+  the Deck key `jcs2fresh` (cert `47:B6:…:C6:67`) — **not DB86**, which died in
+  the 2026-09-17 wipe. Installed, intact; personal stable LOW already
+  installed — no duplicate redeploy is queued. Editor candidate `cb2bd45b` (45 changed bytes vs pristine)
+  was composed offline into the (now gone) local stage
+  `staging/editor-save-20260915T010000Z` (local-only, never in git), used only in
   isolated scratch guests that have since been destroyed — never installed
   personally.
 - **Editor save:** SAVE (`0x159a9a 48b3→00bf`) + Select (`0x15a9a8 b8b3→00bf`)
@@ -66,7 +80,7 @@ reinstall/uninstall the personal guest.
 
 | Area | Offline-tested | Still live-unverified |
 |---|---|---|
-| TiltDrive gate/panel/router | 449/449 + integration review | in-race authority, brake feel, directions, blend, stale |
+| TiltDrive gate/router | 546/546 whole offline matrix (`docs/CONTINUATION.md` §3) | unselectable by design 2026-09-18 (sensor-landscape display flip); in-race authority never verified |
 | Quit hide/teardown | lifecycle/runner/window suites green | GamingMode presentation |
 | Sound v3 | file/byte guards + prior live PASS on scratch | personal redeploy audible check |
 | Editor SAVE/Select | static llvm + hash guards | whole custom save→list→reopen→restart chain |
@@ -84,13 +98,14 @@ dev-deck-display/ (developer-only: Deck-local display pins, not distributed)
 ```
 
 NOT distributed and NOT in git: `backups/`, `staging/`, `analysis/`,
-`runtime/sdk`, AVD images, pulled APKs/saves, the DB86 signing private key.
+`runtime/sdk`, AVD images, pulled APKs/saves, the signing private key (the
+live key is `jcs2fresh` — DB86 died in the 2026-09-17 wipe).
 Same-key (`DB:86:A5:6E:…:33:ED`) `-r` reinstall preserves userdata —
 never uninstall, clear, reinvent, or rotate the key. See `docs/SETUP.md`.
 
 ## Next concrete tasks (serialized, one live slot, user drives live)
 
-1. User TiltDrive test card (sticks-dead, directions, pedals, blend, quit).
+1. ~~User TiltDrive test card~~ — closed 2026-09-18: three live attempts, display flipped every time; Tilt Drive is unselectable now (see Current truth).
 2. User GamingMode quit-presentation check.
 3. Single isolated editor BUILD→SAVE→H1/H2 retry only after slots free.
 4. Same-key upgrades as needed under the existing authorization (DB86 gates,

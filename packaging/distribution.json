@@ -8,7 +8,7 @@
     "JCS2_LAYOUT": "portable"
   },
   "release_asset": "jet-car-stunts-2-setup.tar.gz",
-  "release_status": "installer-not-yet-built",
+  "release_status": "installer-built-dry-run-verified-pending-deck-run",
   "public_payload_policy": "authorized-game-and-artwork; runtime redistribution reviewed separately",
   "exclude_public": [
     "personal AVD",
@@ -17,10 +17,42 @@
     "keys",
     "downloaded Google APIs image"
   ],
+  "installer": {
+    "entry": "setup-jcs2.sh",
+    "script": "packaging/installer/install_jcs2.py",
+    "runtime_lock": "packaging/installer/runtime-lock.json",
+    "layout_marker": "jcs2-layout.json",
+    "install_state": "install-state.json",
+    "runtime_manifest": "state/runtime-manifest.json",
+    "md5_manifest": "state/runtime-manifest.md5",
+    "commit_file": "payload-commit.txt",
+    "archive_content": "text only: launcher scripts, installer, licenses, mapping.json, distribution metadata; no binaries",
+    "emulator_override": "Android Emulator 32.1.15 (build 10696886) -> runtime/sdk/emulator; 37.1.11 stays in the lock as role=alternate and is never fetched by default",
+    "steam_registration": "steam/steam_shortcut.py register --install-root <root> --launch-target steam/jcs2-steam-launch.sh --account <id> --confirm-steam-closed",
+    "separate_assets": {
+      "game_payload": {
+        "status": "needed",
+        "ships": "one *.apk or the five signed splits, plus linux-launcher/jcs2-controller-linux and linux-launcher/jcs2-input-helper.jar",
+        "consumed_by": "--payload-dir (or --payload-archive)"
+      },
+      "artwork": {
+        "status": "needed; steam/artwork/*.png are binary and stay out of the setup archive",
+        "consumed_by": "--artwork-dir"
+      },
+      "runtime_archives": {
+        "status": "fetched from the pinned official URLs or supplied offline through --archives-dir",
+        "consumed_by": "--archives-dir / --allow-network"
+      }
+    }
+  },
   "artwork": {
     "icon": {
       "path": "steam/artwork/icon.png",
       "size": [
+        192,
+        192
+      ],
+      "measured": [
         192,
         192
       ],
@@ -32,7 +64,23 @@
         600,
         900
       ],
-      "status": "needed"
+      "measured": [
+        600,
+        900
+      ],
+      "status": "present-at-recommended-size"
+    },
+    "landscape": {
+      "path": "steam/artwork/landscape.png",
+      "size": [
+        920,
+        430
+      ],
+      "measured": [
+        1832,
+        858
+      ],
+      "status": "present-above-recommended-size"
     },
     "hero": {
       "path": "steam/artwork/hero.png",
@@ -40,7 +88,11 @@
         3840,
         1240
       ],
-      "status": "needed"
+      "measured": [
+        1920,
+        620
+      ],
+      "status": "present-below-recommended-size"
     },
     "logo": {
       "path": "steam/artwork/logo.png",
@@ -48,8 +100,12 @@
         1280,
         720
       ],
+      "measured": [
+        1187,
+        413
+      ],
       "transparent": true,
-      "status": "needed"
+      "status": "present; transparency not verified"
     }
   },
   "game_art_permission": "User confirmed redistribution permission in this session, 2026-09-12",

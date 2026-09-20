@@ -1,10 +1,14 @@
 import contextlib
 import importlib.util
 import io
+import os
+import subprocess
 import sys
 from pathlib import Path
 import tempfile
 import unittest
+from types import SimpleNamespace
+from unittest import mock
 
 spec = importlib.util.spec_from_file_location(
     'bootstrap_linux_guest', Path(__file__).with_name('bootstrap_linux_guest.py'))
@@ -186,6 +190,106 @@ class ArgvTests(unittest.TestCase):
         self.assertIn('vm.heapSize = 256', text)
         self.assertIn('disk.dataPartition.size = 6442450944', text)
         self.assertIn('image.sysdir.1 = /sdk/image', text)
+
+
+class WarningBootstrapTests(unittest.TestCase):
+    def test_warning_config_present_when_visible_emulator_spawned(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            config = (root / 'xdg' / 'Android Open Source Project' /
+                      'Emulator.conf')
+            config.parent.mkdir(parents=True)
+            config.write_text(
+                '[set]\nshowCompatibilityWarning=false\nclipboardSharing=true\n',
+                encoding='utf-8')
+            cfg = SimpleNamespace(
+                accept_licenses=True,
+                avd_home=root / 'avd',
+                avd_name='jcs2-fresh',
+                identity='identity\n',
+                adb=Path('/sdk/platform-tools/adb'),
+                emulator=Path('/sdk/emulator/emulator'),
+                console_port=5594,
+                adb_port=5038,
+                serial='127.0.0.1:5595',
+                headless=False,
+                split_paths=[root / 'base.apk'],
+                helper_jar=None,
+            )
+            observed = []
+            rooted = [False]
+
+            cfg.avd_home.mkdir()
+
+            class Child:
+                process = None
+
+                def __init__(self):
+                    self.process = self
+
+                def poll(self):
+                    return None
+
+            class Children:
+                def __init__(self):
+                    self.children = []
+
+                def spawn(self, name, argv, log_path, env):
+                    if name == 'emulator':
+                        observed.append(config.read_text(encoding='utf-8'))
+                    child = Child()
+                    self.children.append(child)
+                    return child
+
+                def stop(self, name):
+                    pass
+
+                def kill_all(self):
+                    pass
+
+            def adb(_cfg, _env, *args, **_kwargs):
+                if args[:1] == ('root',):
+                    rooted[0] = True
+                elif args[:1] == ('unroot',):
+                    rooted[0] = False
+                if args[:1] == ('get-state',):
+                    return subprocess.CompletedProcess(args, 0, 'device\n', '')
+                if args[:3] == ('shell', 'getprop', 'sys.boot_completed'):
+                    return subprocess.CompletedProcess(args, 0, '1\n', '')
+                if args[:2] == ('shell', 'id'):
+                    uid = 0 if rooted[0] else 2000
+                    return subprocess.CompletedProcess(args, 0, f'uid={uid}\n', '')
+                if args[:2] == ('shell', 'sh'):
+                    return subprocess.CompletedProcess(args, 0, 'uid=2000\n', '')
+                return subprocess.CompletedProcess(args, 0, '', '')
+
+            with mock.patch.dict(
+                    os.environ, {'XDG_CONFIG_HOME': str(root / 'xdg')}), \
+                 mock.patch.object(bootstrap, 'check_space_and_licenses',
+                                   return_value={'free_bytes': 1, 'logical_bytes': 0}), \
+                 mock.patch.object(bootstrap, 'check_ports'), \
+                 mock.patch.object(bootstrap, 'claim_avd',
+                                   return_value=(root / 'guest', root / 'pointer', True)), \
+                 mock.patch.object(bootstrap, 'check_bootstrap_marker',
+                                   return_value=False), \
+                 mock.patch.object(bootstrap, 'write_pending_marker'), \
+                 mock.patch.object(bootstrap, '_base_env', return_value={}), \
+                 mock.patch.object(bootstrap, 'tcp_open', return_value=True), \
+                 mock.patch.object(bootstrap, '_wait_for_device_state'), \
+                 mock.patch.object(bootstrap, '_run_adb', side_effect=adb), \
+                 mock.patch.object(bootstrap, 'OwnedChildren', Children), \
+                 mock.patch.object(bootstrap.subprocess, 'run',
+                                   return_value=subprocess.CompletedProcess([], 0, '', '')):
+                self.assertEqual(bootstrap.execute_bootstrap(cfg), 0)
+
+            self.assertEqual(len(observed), 1)
+            text = observed[0]
+            self.assertTrue(text.startswith(
+                'showCompatibilityWarning_jcs2-fresh=false\n[set]\n'))
+            self.assertIn(
+                'showCompatibilityWarning=false\nclipboardSharing=true\n',
+                text)
+
 
 
 class MarkerTests(unittest.TestCase):

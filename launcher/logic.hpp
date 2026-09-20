@@ -68,7 +68,7 @@ inline std::wstring avd_config(const fs::path &image, const std::wstring &name) 
                    L"avd.ini.encoding = UTF-8\n"
                    L"fastboot.forceColdBoot = yes\n"
                    L"fastboot.forceFastBoot = no\n"
-                   L"hw.accelerometer = no\n"
+                   L"hw.accelerometer = yes\n"
                    L"hw.audioInput = no\n"
                    L"hw.audioOutput = no\n"
                    L"hw.camera.back = none\n"

@@ -84,6 +84,7 @@ class X11:
                                C.POINTER(C.c_uint))
         self.attributes = bind('XGetWindowAttributes', C.c_int, ptr, ul, C.POINTER(Attributes))
         self.unmap_window = bind('XUnmapWindow', C.c_int, ptr, ul)
+        self.set_input_focus = bind('XSetInputFocus', C.c_int, ptr, ul, C.c_int, C.c_ulong)
         self.map_raised = bind('XMapRaised', C.c_int, ptr, ul)
         self.send_event = bind('XSendEvent', C.c_int, ptr, ul, C.c_int, C.c_long, C.POINTER(Event))
         self.flush = bind('XFlush', C.c_int, ptr)
@@ -197,9 +198,13 @@ class X11:
         for i, value in enumerate(values):
             event.client.data.l[i] = value
         self.send_event(self.display, self.root, 0, (1 << 20) | (1 << 19), C.byref(event))
-
     def present(self, xid):
         self.map_raised(self.display, xid)
+        # EWMH active-window requests may be ignored by a compositor's
+        # focus-stealing policy. Explicitly focus the owned render window too;
+        # otherwise host touchscreen events can remain targeted at the hidden
+        # Qt toolbar even though the game is visibly fullscreen.
+        self.set_input_focus(self.display, xid, 2, 0)  # RevertToParent, CurrentTime
         self.message(xid, '_NET_WM_STATE', [1, self.atom('_NET_WM_STATE_FULLSCREEN'), 0, 2, 0])
         self.message(xid, '_NET_ACTIVE_WINDOW', [2, 0, 0, 0, 0])
         self.flush(self.display)
@@ -239,11 +244,8 @@ class WindowPolicy:
         self.pid, self.adapter, self.log = pid, adapter, logger
         self.main_xid = None
         self.last_inventory = None
-        self.panel_active = False
 
-    def update(self, windows, reveal=True, panel_active=False):
-        return_from_panel = self.panel_active and not panel_active
-        self.panel_active = panel_active
+    def update(self, windows, reveal=True):
         owned = sorted((w for w in windows if w.pid == self.pid and 'Emulator' in w.classes),
                        key=lambda w: w.xid)
         if owned != self.last_inventory:
@@ -266,9 +268,7 @@ class WindowPolicy:
                 self.adapter.unmap(main.xid)
                 self.log('startup-main-hidden', xid=main.xid, pid=self.pid)
             return None
-        if panel_active:
-            return None
-        if self.main_xid != main.xid or remapped or return_from_panel:
+        if self.main_xid != main.xid or remapped:
             self.adapter.present(main.xid)
             self.log('main-presented', xid=main.xid, pid=self.pid)
             self.main_xid = main.xid
@@ -286,7 +286,6 @@ def main():
     parser.add_argument('--pid', required=True, type=int)
     parser.add_argument('--ready-file', required=True, type=Path)
     parser.add_argument('--reveal-file', type=Path, help='keep boot UI hidden until runner marks game resumed')
-    parser.add_argument('--panel-file', type=Path, help='suspend game focus while controls panel is open')
     args = parser.parse_args()
     stopped = False
     def stop(*_):
@@ -310,8 +309,7 @@ def main():
             reveal = args.reveal_file is None or args.reveal_file.is_file()
             if reveal and deadline is None:
                 deadline = time.monotonic() + 30
-            result = policy.update(adapter.inventory(), reveal=reveal,
-                                   panel_active=args.panel_file is not None and args.panel_file.exists())
+            result = policy.update(adapter.inventory(), reveal=reveal)
             if result and not ready:
                 temporary = args.ready_file.with_name(args.ready_file.name + f'.{os.getpid()}.tmp')
                 temporary.write_text(json.dumps(result) + '\n')

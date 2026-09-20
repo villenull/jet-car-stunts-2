@@ -6,12 +6,29 @@
 # See controller-notes.txt for the current input scope and validation limits.
 #
 # Stop any Desktop game session first: only ONE session can own ports
-# 5038/5594/5595. Launch failures are recorded in analysis/linux-launcher/logs.
+# 5038/5594/5595. Launch failures are recorded in the lane's log directory
+# (state/logs for the portable layout; JCS2_LOGDIR overrides it).
 set -Eeuo pipefail
 cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.."
 
 # Share the runner's explicit legacy/portable selection and root-relative overrides.
 # Capture status before eval so configuration errors cannot silently fall through.
+#
+# Gaming Mode runs its own session and lets linux-launcher/gamescope_window.py
+# present the game window, so no desktop-only variable (DISPLAY, WAYLAND_DISPLAY,
+# XDG_RUNTIME_DIR, HYPRLAND_INSTANCE_SIGNATURE) is baked in here. Supply the lane
+# spec the desktop supervisor uses: the portable layout, the profile prepared for
+# it, and the prepared legacy32 SDK under state/. Explicit JCS2_* values from the
+# environment still win, and an installed copy (the jcs2-layout.json marker that
+# runtime_paths.py reads) keeps its own runtime/sdk, state/avd and profile name.
+if [[ ! -f "$PWD/jcs2-layout.json" ]]; then
+  export JCS2_LAYOUT="${JCS2_LAYOUT:-portable}"
+  export JCS2_AVD="${JCS2_AVD:-jcs2-fresh}"
+  export JCS2_SDK="${JCS2_SDK:-$PWD/state/emulator-ab-10696886}"
+fi
+# Qt must not probe XI2 under the Gamescope session; the runner owns the window.
+export QT_XCB_NO_XI2="${QT_XCB_NO_XI2:-1}"
+
 # Select JCS2_PYTHON, then its runtime_paths: an installed jcs2-layout.json
 # chooses the portable layout without relying on Steam launch options.
 source "$PWD/linux-launcher/python-select.sh"
@@ -80,7 +97,10 @@ forward_signal() {
 }
 trap 'forward_signal TERM' TERM
 trap 'forward_signal INT' INT
-./run-jcs2 "$@" &
+# Always launch the physical joystick lane the desktop supervisor uses; any
+# earlier --input (a manual QA override) is superseded because the runner's
+# parser takes the last occurrence.
+./run-jcs2 "$@" --input joystick &
 runner_pid=$!
 while true; do
   if wait "$runner_pid"; then

@@ -27,7 +27,12 @@ from pathlib import Path
 from typing import IO, Iterable
 
 from runtime_paths import resolve_paths
-from audio_config import audio_config_status
+from audio_config import audio_config_status, seed_media_volume
+from deck_pad import DeckPadError, claim_pad, release_pad
+from qt_settings import (
+    QtSettingsError,
+    seed_compatibility_warning_suppression,
+)
 
 # --- Bridge side-channel (raw-event Unix socket) ---
 try:
@@ -52,12 +57,19 @@ try:
     from tilt_control.sensor_transport import (
         ConsoleSensorTransport,
         NEUTRAL_ACCELERATION,
+        GRAVITY,
         CONSOLE_PORT,
+        format_sensor_set,
     )
 except ImportError:
     ConsoleSensorTransport = None
-    NEUTRAL_ACCELERATION = (0.0, 0.0, 9.81)
+    NEUTRAL_ACCELERATION = (-0.34, 0.0, 9.80)  # deterministic 2 degree roll park
+    GRAVITY = 9.81
     CONSOLE_PORT = 5594
+
+    def format_sensor_set(vector):  # type: ignore[misc]
+        ax, ay, az = (float(value) for value in vector)
+        return f"sensor set acceleration {ax:.3f}:{ay:.3f}:{az:.3f}\n".encode()
 
 # --- DeckControls (moved from bridge to runner for side-channel mode) ---
 try:
@@ -78,11 +90,102 @@ PACKAGE_NAME = re.compile(r"[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+")
 ADB_PORT = 5038
 CONSOLE_PORT = 5594
 SERIAL = "127.0.0.1:5595"
-UNASSIGNED_BUTTONS = frozenset(("A", "B", "DPAD_UP", "DPAD_DOWN", "DPAD_LEFT", "DPAD_RIGHT"))
+# Buttons with no guest action. A and B are menu-free (native touch does
+# menus); DPAD is dropped by DeckControls. VIEW (physical SELECT) had the
+# host panel as its only action; with the panel gone it is dropped here so
+# it can never reach the controller, which aborts its live replay on an
+# unknown name and takes the lane down with it (2026-09-18: the controller
+# exited with "invalid live button VIEW" ~40 s after start).
+UNASSIGNED_BUTTONS = frozenset(("A", "B", "VIEW", "DPAD_UP", "DPAD_DOWN", "DPAD_LEFT", "DPAD_RIGHT"))
 MOTION_READY_TIMEOUT = 0.5  # Deck IMU reports at ~250 Hz once readable.
 SENSOR_UNAVAILABLE = "Motion sensor unavailable; left joystick remains active."
 SENSOR_SILENT = "Motion sensor sent no data; left joystick remains active."
 GAMEPLAY_TIMEOUT = 12 * 60 * 60  # 12h sessions (user-approved; was 6h)
+# Host-window rotation bookkeeping (see Launcher.align_visible_emulator).
+# The emulator renders the guest framebuffer upright only while its own window
+# rotation offset and the guest display rotation sum to 0 (mod 4), and each
+# emulator-console `rotate` advances that offset by exactly one. There is no
+# launch flag, AVD setting, or readable getter for the offset in 32.1.15, so the
+# launcher tracks it relative to the state it aligned.
+GUEST_ROTATION_SETTLE_TIMEOUT = 40.0
+# Render verification after alignment. The rotate arithmetic alone is not enough:
+# measured 2026-09-18 the console `rotate` also moves the guest display quarter,
+# so the window offset model can be off by a quarter without anything reporting
+# it. The launcher therefore compares its OWN grim of the host screen against the
+# guest's screencap, rotated through the four quarters, and corrects the offset
+# it can actually see. Frames are downsampled to this grid before comparing.
+RENDER_VERIFY_SCALE = "0.1"
+RENDER_VERIFY_COLUMNS = 40
+RENDER_VERIFY_ROWS = 25
+RENDER_VERIFY_MAX_ATTEMPTS = 4
+# A column "has picture" when its luminance spans more than this; a band of
+# content-free edge columns at least this wide is a 90-degree window error.
+RENDER_CONTENT_VARIANCE = 0.06
+RENDER_BLANK_BAND_MAX = 0.25
+# Recovery plan for a render the measurement says is NOT upright. Chosen by
+# measurement, not arithmetic: a console ``rotate`` advances the host window
+# offset AND the guest display quarter together, so a 90-degree strip is a fixed
+# point of rotating (measured 2026-09-18: six single rotates, each followed by a
+# fresh guest/host pair, left the strip unchanged, as did four ``user_rotation``
+# values). The channel that does move it is the accelerometer, and only while
+# the guest display is UNPINNED - the pin this stage applies afterwards is
+# exactly what makes a wrong render permanent for the rest of the lane. Each
+# action below is followed by a fresh measurement, and the loop stops at the
+# first upright one.
+RENDER_RECOVERY_PLAN = ("probe", "rotate", "probe")
+RENDER_VERIFY_SETTLE_SECONDS = 1.0
+# A window that has not painted yet measures as a blank frame (the content-free
+# band covers the whole window), and acting on that is how the stage was driven
+# to "recover" a picture that was already correct: measured 2026-09-18, the
+# align stage read band 1.0 then 0.6 within four seconds of the game resuming and
+# the picture was upright moments later. A measurement therefore only counts as
+# a verdict once two consecutive reads agree on a frame that has content.
+RENDER_PRESENT_ATTEMPTS = 3
+# Pose sent by the "probe" recovery action: the emulator re-derives its window
+# offset from it and lands upright for a guest on display quarter 1 (measured).
+RENDER_RECOVERY_ACCELERATION = (GRAVITY, 0.0, 0.0)
+# The display pin the last VERIFIED align enforced, persisted beside the logs.
+# A fresh lane can then hold the proven orientation instead of re-deriving it:
+# the provocation cycle exists only to make the emulator re-lay-out its window,
+# and a lane whose last render measured upright already has that layout. The file
+# is advisory - a hold that does not measure upright is discarded, the display is
+# unpinned again, and the full align runs.
+DISPLAY_PIN_FILE = "display-pin.json"
+# A hold is honoured only while the picture is upright on every settled read.
+# The emulator is still rebuilding its window layout for the first seconds after
+# the game resumes (measured 2026-09-18: a hold read 180 degrees one second after
+# resume), so one read would either honour a wrong picture or throw away a good
+# pin by accident.
+RENDER_HOLD_READS = 3
+# Guard thrash rules (user directive 2026-09-18): the polling guard corrects a
+# guest-rotation flip at most once per burst, never two bursts inside this
+# window, and re-parks the accelerometer after every burst. The emulator only
+# re-derives its window layout from a guest rotation *change*, so a live feed
+# left behind after the correction is what made the guard fight itself; the
+# parked pose also has exactly one guest rotation, so seeing that rotation is
+# never a reason to rotate.
+# Tilt Drive is UNSELECTABLE on this AVD (user verdict 2026-09-18, after three
+# live attempts): the game's window requests SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+# (`dumpsys window tokens` shows mOrientation=6), so the framework picks the
+# display quarter from the very accelerometer the tilt mirror feeds, and every
+# tilt re-derives the emulator window as a sideways strip; this image exposes no
+# rotation-hold lever (`wm user-rotation` and `cmd window user-rotation` are both
+# "Unknown command"). The engine below is kept intact - only the user-facing
+# ingress is closed - so the feature can return on an image that can hold the
+# display. Gamepad is the only selectable mode.
+TILT_DRIVE_SELECTABLE = False
+TILT_DRIVE_DISABLED_REASON = (
+    "Tilt Drive is disabled on this device: the game's sensor-landscape window "
+    "lets tilt re-derive the display and the picture flips. Gamepad stays.")
+GUARD_ROTATE_COOLDOWN = 300.0
+PARKED_GUEST_ROTATION = 1
+# One quarter-turn probe per guest landscape quarter: gravity along an X half
+# axis reads as the matching landscape rotation, so the launcher can move the
+# guest display exactly 90 degrees (Launcher.provoke_guest_display_rotation).
+ROTATION_PROBE_ACCELERATION = {
+    3: (GRAVITY, 0.0, 0.0),
+    1: (-GRAVITY, 0.0, 0.0),
+}
 # Native-Quit lifecycle: once launch_game has confirmed the game resumed, a
 # sustained HOME/launcher foreground PLUS an ended game process means the user
 # accepted the game's own Quit rather than a boot/loading state. Arbitrary
@@ -100,6 +203,8 @@ HOME_PACKAGES = frozenset({
     "com.google.android.apps.nexuslauncher",
     "com.android.launcher3",
 })
+
+
 ISOLATION_SCRIPT = (
     "svc wifi disable; svc data disable; "
     "for i in $(ip -o link | awk -F': ' '$2 != \"lo\" {print $2}' | cut -d@ -f1); "
@@ -216,18 +321,221 @@ class CommandLog:
     def __init__(self, path: Path):
         self.path = path
 
+    @staticmethod
+    def _text(value) -> str:
+        """Binary output is summarised, never decoded into the log."""
+        if value is None:
+            return ""
+        if isinstance(value, (bytes, bytearray)):
+            return f"<{len(value)} bytes>"
+        return value
+
     def record(self, argv: list[str], result: subprocess.CompletedProcess | None, error: str = "") -> None:
         row = {
             "time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "argv": argv,
             "returncode": None if result is None else result.returncode,
-            "stdout": "" if result is None else (result.stdout or ""),
-            "stderr": "" if result is None else (result.stderr or ""),
+            "stdout": "" if result is None else self._text(result.stdout),
+            "stderr": "" if result is None else self._text(result.stderr),
             "error": error,
         }
         with self.path.open("a", encoding="utf-8") as stream:
             json.dump(row, stream, sort_keys=True)
             stream.write("\n")
+
+
+def downsample_ppm(raw: bytes, columns: int, rows: int, region=None):
+    """PPM (P6) bytes -> coarse RGB grid, or None when the header is unexpected."""
+    if not raw.startswith(b"P6"):
+        return None
+    fields: list[int] = []
+    position = 2
+    while len(fields) < 3 and position < len(raw):
+        while position < len(raw) and raw[position:position + 1].isspace():
+            position += 1
+        if raw[position:position + 1] == b"#":
+            while position < len(raw) and raw[position:position + 1] != b"\n":
+                position += 1
+            continue
+        start = position
+        while position < len(raw) and not raw[position:position + 1].isspace():
+            position += 1
+        if position == start:
+            return None
+        fields.append(int(raw[start:position]))
+    position += 1
+    width, height = fields[0], fields[1]
+    pixels = raw[position:]
+    if width <= 0 or height <= 0 or len(pixels) < width * height * 3:
+        return None
+    return sample_grid(pixels, width, height, 3, columns, rows, region)
+
+
+def downsample_rgba(raw: bytes, columns: int, rows: int, region=None):
+    """Android raw screencap (w, h, format + RGBA pixels) -> coarse RGB grid."""
+    if len(raw) < 12:
+        return None
+    width = int.from_bytes(raw[0:4], "little")
+    height = int.from_bytes(raw[4:8], "little")
+    pixels = raw[12:]
+    if width <= 0 or height <= 0 or len(pixels) < width * height * 4:
+        return None
+    return sample_grid(pixels, width, height, 4, columns, rows, region)
+
+
+def sample_grid(pixels: bytes, width: int, height: int, channels: int,
+                columns: int, rows: int, region=None):
+    """Average blocks of a packed image into a small RGB grid (0..1 floats).
+
+    ``region`` (x, y, w, h) restricts sampling, which is how the host screen is
+    reduced to just the emulator window: the deck shows a desktop around it, and
+    comparing that against the guest frame produced a 0.6 mismatch for a
+    perfectly upright picture (measured 2026-09-18).
+    """
+    if region:
+        rx, ry, rw, rh = region
+        rx, ry = max(0, min(rx, width - 1)), max(0, min(ry, height - 1))
+        rw = max(1, min(rw, width - rx))
+        rh = max(1, min(rh, height - ry))
+    else:
+        rx, ry, rw, rh = 0, 0, width, height
+    grid = []
+    for row in range(rows):
+        y0 = ry + row * rh // rows
+        y1 = max(y0 + 1, ry + (row + 1) * rh // rows)
+        line = []
+        for column in range(columns):
+            x0 = rx + column * rw // columns
+            x1 = max(x0 + 1, rx + (column + 1) * rw // columns)
+            total = [0, 0, 0]
+            count = 0
+            for y in range(y0, y1, max(1, (y1 - y0) // 3)):
+                base = y * width
+                for x in range(x0, x1, max(1, (x1 - x0) // 3)):
+                    offset = (base + x) * channels
+                    total[0] += pixels[offset]
+                    total[1] += pixels[offset + 1]
+                    total[2] += pixels[offset + 2]
+                    count += 1
+            line.append(tuple(component / (count * 255.0) for component in total))
+        grid.append(line)
+    return grid
+
+
+def rotate_grid(grid, quarters: int):
+    """Rotate a small grid by 90-degree quarters (clockwise)."""
+    result = grid
+    for _ in range(quarters % 4):
+        result = [list(row) for row in zip(*result[::-1])]
+    return result
+
+
+def _luminance(pixel) -> float:
+    red, green, blue = pixel
+    return 0.299 * red + 0.587 * green + 0.114 * blue
+
+
+def content_columns(grid) -> list[bool]:
+    """Per column: does it carry picture, or is it uniform letterbox fill?"""
+    flags = []
+    for column in range(len(grid[0])):
+        values = [_luminance(grid[row][column]) for row in range(len(grid))]
+        flags.append((max(values) - min(values)) > RENDER_CONTENT_VARIANCE)
+    return flags
+
+
+def blank_band_ratio(grid) -> float:
+    """Widest content-free band touching a left or right edge, as a ratio.
+
+    A 90-degree window error renders the guest scaled into a portrait strip with
+    a wide uniform band beside it (measured 2026-09-18: content in the left ~55
+    percent, blank fill to the right), which no rotation of the guest frame can
+    match - so this, not a pixel comparison, is what detects a quarter error.
+    """
+    if not grid or not grid[0]:
+        return 1.0
+    flags = content_columns(grid)
+    leading = 0
+    while leading < len(flags) and not flags[leading]:
+        leading += 1
+    trailing = 0
+    while trailing < len(flags) - 1 and not flags[len(flags) - 1 - trailing]:
+        trailing += 1
+    return max(leading, trailing) / len(flags)
+
+
+def render_offset(host, guest) -> tuple[int, float]:
+    """Quarter offset that best maps the guest frame onto the host frame.
+
+    Returns (offset, error): offset 0 means the host renders the guest upright.
+    Only the 0- and 180-degree quarters are compared pixel-wise, because a
+    90-degree error puts the guest into a scaled portrait strip; that case is
+    reported by a wide blank band instead (offset 1). Pure and
+    display-independent, so the offline suite pins it with synthetic frames.
+    """
+    if not host or not guest or len(host) != len(guest) or len(host[0]) != len(guest[0]):
+        return 1, 1.0
+    band = blank_band_ratio(host)
+    if band >= RENDER_BLANK_BAND_MAX:
+        return 1, band
+    best, best_error = 0, None
+    for quarters in (0, 2):
+        candidate = rotate_grid(guest, quarters)
+        total = 0.0
+        for host_row, guest_row in zip(host, candidate):
+            for (hr, hg, hb), (gr, gg, gb) in zip(host_row, guest_row):
+                total += abs(hr - gr) + abs(hg - gg) + abs(hb - gb)
+        error = total / (3.0 * len(host) * len(host[0]))
+        if best_error is None or error < best_error:
+            best, best_error = quarters, error
+    return best, (best_error if best_error is not None else 1.0)
+
+
+def emulator_window_region(clients) -> tuple[int, int, int, int] | None:
+    """(x, y, w, h) of the emulator client in a parsed ``hyprctl clients`` list.
+
+    Pure and display-independent, so the offline suite pins it without a
+    compositor.
+    """
+    for client in clients if isinstance(clients, list) else []:
+        if not isinstance(client, dict) or str(client.get("class", "")).lower() != "emulator":
+            continue
+        at, size = client.get("at"), client.get("size")
+        if (isinstance(at, list) and isinstance(size, list) and len(at) == 2
+                and len(size) == 2 and size[0] > 0 and size[1] > 0):
+            return int(at[0]), int(at[1]), int(size[0]), int(size[1])
+    return None
+
+
+def hyprland_signature_candidates(env: dict | None = None) -> list[str]:
+    """Hyprland instance signatures to try, the configured one first.
+
+    A supervisor's pinned ``HYPRLAND_INSTANCE_SIGNATURE`` goes stale across a
+    reboot: the compositor runtime dir keeps the previous instance beside the
+    new one, every ``hyprctl`` call under the old name fails, and the window
+    region then went unknown (measured 2026-09-18). The live instance is found
+    by trying the runtime dirs newest-first, because the running compositor is
+    the one whose directory was touched last.
+    """
+    environ = os.environ if env is None else env
+    candidates: list[str] = []
+    configured = environ.get("HYPRLAND_INSTANCE_SIGNATURE", "")
+    if configured:
+        candidates.append(configured)
+    runtime = Path(environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}") / "hypr"
+    try:
+        entries = [path for path in runtime.iterdir() if path.is_dir()]
+    except OSError:
+        return candidates
+    def mtime(path: Path) -> float:
+        try:
+            return path.stat().st_mtime
+        except OSError:
+            return 0.0
+    for path in sorted(entries, key=mtime, reverse=True):
+        if path.name not in candidates:
+            candidates.append(path.name)
+    return candidates
 
 
 class Launcher:
@@ -255,6 +563,30 @@ class Launcher:
         self.window_guard: OwnedProcess | None = None
         self._profile_lock: IO[bytes] | None = None
         self._endpoint_lock: IO[bytes] | None = None
+        # Guest display rotation the host window was last aligned to (None until
+        # align_visible_emulator has run once).
+        self._aligned_guest_rotation: int | None = None
+        # Emulator-window rectangle the last host frame was sampled through
+        # (None when the host screen could not be cropped); reported in the
+        # render-measurement log so an offset of 1 can be told apart from a
+        # whole-screen capture that simply has no window in it.
+        self._host_window_region: tuple[int, int, int, int] | None = None
+        # Quarter offset the last guest/host pair measured (None when no pair
+        # could be captured): the align stage pins the display only on a render
+        # whose measurement says upright.
+        self._last_measured_offset: int | None = None
+        # Content-free band ratio of the same frame (1.0 = nothing painted yet).
+        self._last_host_band: float = 1.0
+        # Guard thrash bookkeeping: the flip already handled and when the last
+        # correction burst was sent (see guard_display_orientation).
+        self._guard_last_rotate_at: float | None = None
+        self._guard_rotated_for: int | None = None
+        self._guard_read_failed = False
+        self._guard_quiet_until = 0.0
+        # True once the guest display quarter is pinned (tilt cannot flip it).
+        self._guest_rotation_locked = False
+        # What claiming the built-in pad changed, so cleanup() can reverse it.
+        self._deck_pad_state: dict | None = None
 
     def log(self, message: str, **fields: object) -> None:
         row = {"time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "message": message}
@@ -267,7 +599,16 @@ class Launcher:
 
     def environment(self) -> dict[str, str]:
         env = os.environ.copy()
-        env.update({"ANDROID_HOME": str(SDK), "ANDROID_SDK_ROOT": str(SDK), "ANDROID_AVD_HOME": str(AVD_HOME), "ADB_SERVER_PORT": str(ADB_PORT)})
+        env.update({"ANDROID_HOME": str(SDK), "ANDROID_SDK_ROOT": str(SDK),
+                    "ANDROID_AVD_HOME": str(AVD_HOME), "ADB_SERVER_PORT": str(ADB_PORT)})
+        # Steam sets ENABLE_GAMESCOPE_WSI for its own games. The emulator is an
+        # Xwayland client (gamescope composites its window there), and that layer
+        # kills its boot when launched from Steam in Gaming Mode: emulator.log
+        # ends with "cannot add library .../lib64/vulkan/libvulkan.so: failed",
+        # "[Gamescope WSI] Executable name: qemu-system-x86_64", then the process
+        # exits ~2 s into boot ("emulator exited during boot"). It is not needed
+        # for the X11/GL path we use, so it is switched off for every child.
+        env["ENABLE_GAMESCOPE_WSI"] = "0"
         return env
 
     def ensure_server_alive_if_needed(self, argv: list[str]) -> None:
@@ -291,6 +632,28 @@ class Launcher:
                  stdout=compact(result.stdout), stderr=compact(result.stderr))
         if check and result.returncode:
             raise LauncherError(f"command failed ({result.returncode}): {command_text(argv)}: {compact(result.stderr or result.stdout)}")
+        return result
+
+    def run_bytes(self, argv: list[str], timeout: float = 15) -> subprocess.CompletedProcess:
+        """Run a command whose stdout is BINARY (raw screencap, PPM frames).
+
+        ``run`` decodes stdout as text, which is wrong for frames: a raw guest
+        screencap is pixel data, and decoding it raised UnicodeDecodeError out of
+        the align stage (measured 2026-09-18: the lane stopped the moment the
+        render verification captured a guest frame). Binary output is summarised
+        in the command log instead of stored.
+        """
+        started = time.monotonic()
+        try:
+            result = subprocess.run(argv, capture_output=True, timeout=timeout, env=self.environment())
+        except (OSError, subprocess.TimeoutExpired) as error:
+            self.commands.record(argv, None, repr(error))
+            raise LauncherError(f"command failed: {command_text(argv)}: {error}") from error
+        self.commands.record(argv, result)
+        self.log("command", argv=argv, returncode=result.returncode,
+                 duration_ms=round((time.monotonic() - started) * 1000),
+                 stdout=f"<{len(result.stdout or b'')} bytes>",
+                 stderr=compact(self.commands._text(result.stderr)))
         return result
 
     def spawn(self, name: str, argv: list[str], stdout_name: str, stderr_name: str | None = None) -> OwnedProcess:
@@ -336,6 +699,13 @@ class Launcher:
         self.log("stage=preflight", sdk=str(SDK), avd_home=str(AVD_HOME), avd=AVD,
                  adb_port=ADB_PORT, console_port=CONSOLE_PORT, serial=SERIAL,
                  input_mode=self.args.input_mode)
+        try:
+            settings_path, warning_key, changed = (
+                seed_compatibility_warning_suppression(AVD))
+        except QtSettingsError as error:
+            raise LauncherError(str(error)) from error
+        self.log("stage=compatibility-warning-seeded", path=str(settings_path),
+                 key=warning_key, changed=changed)
 
     def start_server(self) -> None:
         adb = str(SDK / "platform-tools/adb")
@@ -358,10 +728,25 @@ class Launcher:
         """Build isolation argv with the script kept as one ADB shell arg."""
         return [str(SDK / "platform-tools/adb"), "-P", str(ADB_PORT), "-s", SERIAL, "shell", ISOLATION_SCRIPT]
 
+    def gpu_mode(self) -> str:
+        """Emulator GPU mode for this session.
+
+        `-gpu host` is the desktop default and the proven 60 fps path, but it
+        needs a desktop GL context: inside a gamescope session its color buffers
+        fail ("ColorBuffer::create get gl error 0x502", "bad color buffer
+        handle" in emulator.log) and the guest's surface dies with the game a few
+        seconds after launch. The AVD is provisioned for swiftshader_indirect,
+        which gamescope does not fight. JCS2_GPU overrides either choice.
+        """
+        override = os.environ.get("JCS2_GPU", "").strip()
+        if override:
+            return override
+        return "host" if self.desktop_compositor_available() else "swiftshader_indirect"
+
     def start_emulator(self) -> None:
         argv = [str(SDK / "emulator/emulator"), "-avd", AVD, "-port", str(CONSOLE_PORT), "-no-snapshot", "-no-boot-anim",
                 "-adb-path", str(SDK / "platform-tools/adb"),
-                "-gpu", "host", "-memory", "1536", "-qemu", "-net", "none"]
+                "-gpu", self.gpu_mode(), "-memory", "1536", "-qemu", "-net", "none"]
         if self.args.headless:
             argv.insert(argv.index("-qemu"), "-no-window")
         else:
@@ -385,9 +770,10 @@ class Launcher:
         raise LauncherError("bounded emulator boot/reconnect timeout")
 
     def start_gamescope_window_guard(self) -> None:
-        desktops = os.environ.get("XDG_CURRENT_DESKTOP", "").lower().split(":")
-        gaming_mode = "gamescope" in desktops or os.environ.get("DESKTOP_SESSION") == "gamescope-wayland"
-        if self.args.headless or not gaming_mode:
+        # The helper is an X11/XWayland input and fullscreen boundary, not a
+        # Gamescope-only feature. Desktop sessions also need the owned toolbar
+        # suppression and explicit active-window request for real touch input.
+        if self.args.headless or not os.environ.get("DISPLAY"):
             return
         assert self.emulator is not None
         self.window_guard = self.spawn("gamescope-window", [
@@ -395,7 +781,6 @@ class Launcher:
             "--pid", str(self.emulator.process.pid),
             "--ready-file", str(self.run_dir / "gamescope-window-ready.json"),
             "--reveal-file", str(self.run_dir / "game-window-reveal.json"),
-            "--panel-file", str(self.run_dir / "controls-panel-active"),
         ], "gamescope-window.log")
 
     def verify_gamescope_window(self) -> None:
@@ -412,20 +797,18 @@ class Launcher:
             time.sleep(0.1)
         raise LauncherError("Gaming Mode main window was not ready within the startup deadline")
 
-    def orient_visible_emulator(self) -> None:
-        """Rotate the virtual phone, not the host monitor or game framebuffer."""
-        if self.args.headless:
-            return
+    def console_send(self, command: str) -> None:
+        """Send one authenticated emulator-console command (bounded)."""
         with socket.create_connection(("127.0.0.1", CONSOLE_PORT), timeout=5) as console:
             def response() -> bytes:
                 data = bytearray()
                 while len(data) < 65536:
                     chunk = console.recv(4096)
                     if not chunk:
-                        raise LauncherError("emulator console closed during rotation")
+                        raise LauncherError("emulator console closed during command")
                     data.extend(chunk)
                     if any(line.startswith(b"KO") for line in data.splitlines()):
-                        raise LauncherError("emulator console rejected rotation setup")
+                        raise LauncherError("emulator console rejected command")
                     if data.endswith(b"OK\r\n") or data.endswith(b"OK\n"):
                         return bytes(data)
                 raise LauncherError("oversized emulator console response")
@@ -436,9 +819,534 @@ class Launcher:
                 # Never put this local console credential into command/event logs.
                 console.sendall(("auth " + token + "\n").encode())
                 response()
-            console.sendall(b"rotate\n")
+            console.sendall((command + "\n").encode())
             response()
+
+    def orient_visible_emulator(self) -> None:
+        """Rotate the virtual phone, not the host monitor or game framebuffer."""
+        if self.args.headless:
+            return
+        self.console_send("rotate")
         self.log("stage=virtual-display-rotated", clockwise_degrees=90)
+
+    def guest_display_rotation(self) -> int | None:
+        """Guest display rotation (0..3), or None when it cannot be read."""
+        try:
+            result = self.adb("shell", "dumpsys", "display", timeout=10, check=False)
+        except (LauncherError, OSError):
+            return None
+        if result.returncode:
+            return None
+        match = re.search(r"mCurrentOrientation=(\d)", result.stdout)
+        return int(match.group(1)) if match else None
+
+    def wait_for_guest_display_rotation(self, exclude: int | None = None) -> int | None:
+        """Guest display rotation once it has settled on a landscape quarter.
+
+        The game requests SCREEN_ORIENTATION_SENSOR_LANDSCAPE, so the rotation is
+        decided again while its activity resumes. Two consecutive equal landscape
+        samples mean it settled; anything else returns None so the caller skips
+        alignment rather than guessing an orientation. ``exclude`` waits for a
+        rotation *other* than that value (used to observe a provoked change).
+        """
+        deadline = time.monotonic() + GUEST_ROTATION_SETTLE_TIMEOUT
+        previous = None
+        while not self.stop_requested and time.monotonic() < deadline:
+            rotation = self.guest_display_rotation()
+            if rotation in (1, 3) and rotation == previous and rotation != exclude:
+                return rotation
+            previous = rotation
+            time.sleep(0.5)
+        return None
+
+    def provoke_guest_display_rotation(self, rotation: int) -> int | None:
+        """Force one guest display-rotation change, then park the sensor flat.
+
+        The emulator only rebuilds its window layout to match the guest once it
+        observes a guest display-rotation change *while its window is up*; the
+        change at boot usually lands before that, leaving the portrait layout —
+        the game then renders as a sideways or narrow portrait strip. The
+        launcher therefore provokes exactly one deliberate quarter-turn through
+        the accelerometer channel it already owns, waits for the guest to settle
+        on the other landscape quarter, and parks the sensor flat again: neutral
+        for the game's own tilt mode and proposal-free for the framework, so
+        nothing moves afterwards. Returns the new rotation, or None when the
+        guest did not move (caller then leaves the rotation alone).
+        """
+        probe = ROTATION_PROBE_ACCELERATION.get(rotation)
+        if probe is None:
+            return None
+        self.console_send(format_sensor_set(probe).decode().strip())
+        moved = self.wait_for_guest_display_rotation(exclude=rotation)
+        self.console_send(format_sensor_set(NEUTRAL_ACCELERATION).decode().strip())
+        return moved
+
+    @staticmethod
+    def host_rotation_steps(guest_rotation: int, reference_rotation: int) -> int:
+        """Console ``rotate`` steps that keep the host window rendering upright.
+
+        The emulator draws the guest framebuffer upright only while its own
+        rotation offset and the guest display rotation sum to 0 (mod 4), and
+        every ``rotate`` advances that offset by one. A guest rotation change of
+        one quarter-turn therefore needs ``(4 - delta) % 4`` steps. Measured on
+        the proven portrait AVD (800x1280 native) with guest rotation 1: offset 3
+        renders upright, offsets 0 and 2 render a sideways portrait strip, and
+        offset 1 renders upside down.
+        """
+        return (4 - (guest_rotation - reference_rotation)) % 4
+
+    def desktop_compositor_available(self) -> bool:
+        """True when a desktop compositor we can measure through owns the display.
+
+        Gaming Mode presents the emulator window through gamescope's own
+        Xwayland with no Hyprland to query, so the host render cannot be
+        measured there and provoking a guest rotation to re-derive it would
+        restart the game's SENSOR_LANDSCAPE activity (measured 2026-09-19: the
+        game left the foreground ~12 s after the align stage ran). Cached: a
+        session cannot gain or lose its compositor mid-lane.
+        """
+        if getattr(self, "_desktop_compositor", None) is None:
+            signatures = hyprland_signature_candidates()
+            self._desktop_compositor = any(
+                self.hyprctl_clients(signature) is not None for signature in signatures)
+            if not self._desktop_compositor:
+                self.log("display-compositor-unavailable",
+                         reason="no Hyprland session; gamescope owns the output")
+        return self._desktop_compositor
+
+    def hyprctl_clients(self, signature: str):
+        """Parsed ``hyprctl clients -j`` under one signature, or None on failure."""
+        env = self.environment()
+        env["HYPRLAND_INSTANCE_SIGNATURE"] = signature
+        argv = ["hyprctl", "clients", "-j"]
+        try:
+            result = subprocess.run(argv, capture_output=True, text=True, timeout=10, env=env)
+        except (OSError, subprocess.TimeoutExpired):
+            return None
+        self.commands.record(argv, result)
+        self.log("command", argv=argv, returncode=result.returncode,
+                 hyprland_signature=signature, stdout=compact(result.stdout),
+                 stderr=compact(result.stderr))
+        if result.returncode:
+            return None
+        try:
+            clients = json.loads(result.stdout or "[]")
+        except ValueError:
+            return None
+        return clients if isinstance(clients, list) else None
+
+    def hyprland_window_region(self):
+        """(x, y, w, h) of the emulator window on the host screen, or None.
+
+        The launcher's own grim captures the whole deck; the picture lives in
+        the emulator window, so the comparison samples that rectangle only. The
+        configured compositor signature is tried first and the live one is
+        healed in behind it (see hyprland_signature_candidates); None means the
+        window could not be resolved at all, which callers must treat as "cannot
+        measure" and never as licence to compare the desktop against the guest
+        frame - that mismatch is what made an upright picture read as 0.6 and
+        drove recovery actions against a correct render (measured 2026-09-18).
+        """
+        configured = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE", "")
+        for signature in hyprland_signature_candidates():
+            clients = self.hyprctl_clients(signature)
+            if clients is None:
+                continue
+            region = emulator_window_region(clients)
+            if signature != configured:
+                self.log("stage=hyprland-signature-healed", signature=signature,
+                         configured=configured, window_region_known=bool(region))
+            if region is not None:
+                return region
+        return None
+
+    def host_render_grid(self):
+        """Downsampled host screen (grim -> PPM), or None when unavailable.
+
+        The window region used for the crop is cached on the launcher so the
+        measurement log can report it without a second hyprctl call per attempt.
+        """
+        self._host_window_region = None
+        ppm = self.run_dir / "render-verify.ppm"
+        try:
+            result = self.run(["grim", "-s", RENDER_VERIFY_SCALE, "-t", "ppm", str(ppm)],
+                              timeout=10, check=False)
+        except (LauncherError, OSError):
+            return None
+        if result.returncode or not ppm.is_file():
+            return None
+        try:
+            raw = ppm.read_bytes()
+        except OSError:
+            return None
+        self._host_window_region = self.hyprland_window_region()
+        if self._host_window_region is None:
+            # No crop, no measurement: sampling the whole deck against the guest
+            # frame reports a mismatch for an upright picture, so an unresolved
+            # window is reported as "cannot see" instead.
+            return None
+        return downsample_ppm(raw, RENDER_VERIFY_COLUMNS, RENDER_VERIFY_ROWS, self._host_window_region)
+
+    def guest_render_grid(self):
+        """Downsampled guest screen (raw screencap), or None when unavailable."""
+        try:
+            result = self.run_bytes([str(SDK / "platform-tools/adb"), "-P", str(ADB_PORT),
+                                     "-s", SERIAL, "exec-out", "screencap"], timeout=15)
+        except (LauncherError, OSError):
+            return None
+        if result.returncode:
+            return None
+        return downsample_rgba(result.stdout, RENDER_VERIFY_COLUMNS, RENDER_VERIFY_ROWS)
+
+    def measure_render_offset(self, attempt: int):
+        """(offset, error) of the host window against a paired guest frame.
+
+        ``offset`` is what the host actually renders: 0 upright, 2 upside down,
+        1 a 90/270 strip (the two strip quarters are not separable from the host
+        frame alone). None when either frame could not be captured, so a caller
+        can never mistake "no picture" for "upright". Every measurement is
+        logged: the offset is the only evidence that the window is upright.
+        """
+        host = self.host_render_grid()
+        guest = self.guest_render_grid()
+        if host is None or guest is None:
+            self.log("stage=display-render-unmeasured", error="frame capture unavailable",
+                     attempt=attempt, host_frame=host is not None, guest_frame=guest is not None)
+            return None
+        offset, error = render_offset(host, guest)
+        self._last_measured_offset = offset
+        self._last_host_band = blank_band_ratio(host)
+        self.log("stage=display-render-measured", offset=offset, error=round(error, 4),
+                 attempt=attempt, host_band_ratio=round(self._last_host_band, 3),
+                 window_region=str(bool(getattr(self, "_host_window_region", None))))
+        return offset, error
+
+    def measure_settled_frame(self, attempt: int):
+        """(offset, error) of a frame that has actually presented.
+
+        Two consecutive measurements that agree on a frame with content are a
+        verdict; a blank frame (the content-free band covering the whole window)
+        is a window that has not painted yet, so it is re-read instead of acted
+        on. Bounded: at most RENDER_PRESENT_ATTEMPTS reads, and None when the
+        window never presented or no pair could be captured - which the caller
+        reports as unverified rather than guessing.
+        """
+        previous, measured = None, None
+        for _ in range(RENDER_PRESENT_ATTEMPTS):
+            measured = self.measure_render_offset(attempt)
+            if measured is None:
+                return None
+            offset = measured[0]
+            if offset == previous and self._last_host_band < 1.0:
+                return measured
+            previous = offset
+            time.sleep(RENDER_VERIFY_SETTLE_SECONDS)
+        if self._last_host_band >= 1.0:
+            return None  # nothing painted: no verdict to act on
+        return measured
+
+    def display_pin_path(self) -> Path:
+        """Where the last verified display pin is persisted (beside the run dirs)."""
+        return self.run_dir.parent / DISPLAY_PIN_FILE
+
+    def load_display_pin(self) -> int | None:
+        """Guest display quarter the last verified align enforced, or None.
+
+        Absent, unreadable, or out-of-range state is not an error: it just means
+        this lane has no proven orientation to hold and must run the full align.
+        """
+        try:
+            data = json.loads(self.display_pin_path().read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+        rotation = data.get("user_rotation") if isinstance(data, dict) else None
+        return rotation if isinstance(rotation, int) and 0 <= rotation <= 3 else None
+
+    def save_display_pin(self, rotation: int) -> None:
+        """Record the quarter a verified render was aligned against."""
+        row = {"schema": 1, "user_rotation": int(rotation),
+               "verified_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+        try:
+            self.display_pin_path().write_text(json.dumps(row, sort_keys=True) + "\n", encoding="utf-8")
+        except OSError as error:
+            self.log("display-pin-persist-failed", error=str(error)[:200])
+
+    def hold_guest_display_pin(self, rotation: int) -> bool:
+        """Apply the persisted pin and measure it - no probe, no rotate.
+
+        The picture is the only check: the pin is enforced, the deterministic
+        roll is parked, and RENDER_HOLD_READS settled guest/host pairs must all
+        read upright before the hold is honoured - the window is still settling
+        right after the game resumes, so a single read is not a verdict. A hold
+        that does not hold is unpinned and handed to the full align, so the fast
+        path can never keep a wrong orientation.
+        """
+        self.lock_guest_display_rotation(rotation)
+        self.console_send(format_sensor_set(NEUTRAL_ACCELERATION).decode().strip())
+        time.sleep(RENDER_VERIFY_SETTLE_SECONDS)
+        offsets: list[int | None] = []
+        for read in range(1, RENDER_HOLD_READS + 1):
+            measured = self.measure_settled_frame(read)
+            offsets.append(measured[0] if measured else None)
+            if measured is None or measured[0] != 0:
+                break
+            if read < RENDER_HOLD_READS:
+                time.sleep(RENDER_VERIFY_SETTLE_SECONDS)
+        if offsets == [0] * RENDER_HOLD_READS:
+            self._aligned_guest_rotation = rotation
+            self.save_display_pin(rotation)
+            self.log("stage=display-pin-honoured", user_rotation=rotation,
+                     reads=len(offsets))
+            return True
+        self._aligned_guest_rotation = None
+        self.log("stage=display-pin-missed", user_rotation=rotation,
+                 measured_offsets=offsets)
+        self.unpin_guest_display_rotation()
+        return False
+
+    def unpin_guest_display_rotation(self) -> None:
+        """Release the orientation pin so the sensor channel can move the display.
+
+        The pin (``accelerometer_rotation 0``) is what makes a wrong render
+        unrecoverable: with it set neither the emulator's ``rotate`` nor a sensor
+        probe moves the guest display, so a strip measured after the pin stays
+        for the life of the lane (measured 2026-09-18).
+        """
+        try:
+            self.adb("shell", "settings", "put", "system", "accelerometer_rotation", "1", timeout=10)
+        except (LauncherError, OSError) as error:
+            self.log("guest-display-rotation-unpin-failed", error=str(error)[:200])
+            return
+        self._guest_rotation_locked = False
+
+    def recover_render_offset(self, action: str) -> None:
+        """Send one bounded, measured recovery action for a non-upright window.
+
+        ``probe`` releases the pin and drives the accelerometer to the pose the
+        emulator re-derives the upright window offset from (see
+        RENDER_RECOVERY_PLAN); ``rotate`` sends one console rotate. Both re-park
+        at the deterministic pose afterwards: the emulator only re-lays out its
+        window from a guest rotation *change*, and the parked pose is the state
+        that never proposes one.
+        """
+        if action == "probe":
+            self.unpin_guest_display_rotation()
+            self.console_send(format_sensor_set(RENDER_RECOVERY_ACCELERATION).decode().strip())
+            time.sleep(RENDER_VERIFY_SETTLE_SECONDS)
+        else:
+            self.console_send("rotate")
+        self.console_send(format_sensor_set(NEUTRAL_ACCELERATION).decode().strip())
+        self.log("stage=display-render-recovery", action=action)
+
+    def verify_visible_render(self, rotation: int = 0):
+        """Measure the render against the guest and correct the window offset.
+
+        Returns the measured quarter offset (0 = upright) or None when the frames
+        could not be compared. Bounded: at most RENDER_VERIFY_MAX_ATTEMPTS
+        measurements, each recovery action followed by a fresh guest/host pair
+        and the deterministic re-park, and every outcome is logged - a
+        verification that cannot see the screen says so instead of claiming
+        success.
+        """
+        if getattr(self.args, "headless", False):
+            return None
+        offset, error = 1, None
+        for attempt in range(1, RENDER_VERIFY_MAX_ATTEMPTS + 1):
+            measured = self.measure_settled_frame(attempt)
+            if measured is None:
+                self._last_measured_offset = None
+                self.log("stage=display-render-unverified",
+                         error="no settled guest/host pair (window not presented)", attempt=attempt)
+                return None
+            offset, error = measured
+            if offset == 0:
+                self.log("stage=display-render-verified", offset=0, error=round(error, 4),
+                         attempts=attempt)
+                return 0
+            if attempt == RENDER_VERIFY_MAX_ATTEMPTS:
+                break
+            self.recover_render_offset(RENDER_RECOVERY_PLAN[(attempt - 1) % len(RENDER_RECOVERY_PLAN)])
+            time.sleep(RENDER_VERIFY_SETTLE_SECONDS)  # let the window rebuild
+        self.log("stage=display-render-unverified", error="not upright after the bounded recovery plan",
+                 last_offset=offset, error_value=round(error, 4),
+                 window_region=str(bool(getattr(self, "_host_window_region", None))))
+        return None
+
+    def lock_guest_display_rotation(self, rotation: int) -> bool:
+        """Pin the guest display quarter so tilt cannot re-derive the window.
+
+        The emulator re-derives its window rotation whenever the guest display
+        rotation changes and lands a quarter turn off, so in Tilt Drive - where
+        the guest picks its quarter from the live accelerometer - the host render
+        flips between upright, sideways strip and upside-down *between two poll
+        ticks* (measured 2026-09-18: ten 2 s rotation samples stayed on rotation
+        1 while the render went 180 degrees off, which no compensating guard can
+        see). Pinning the quarter removes the cause: the accelerometer *data*
+        stays live for tilt steering, only the display orientation stops moving.
+        One read-back confirms the write; a guest that refuses it leaves the lane
+        running and says so in the log.
+        """
+        try:
+            self.adb("shell", "settings", "put", "system", "accelerometer_rotation", "0", timeout=10)
+            self.adb("shell", "settings", "put", "system", "user_rotation", str(int(rotation)), timeout=10)
+            readback = self.adb("shell", "settings", "get", "system", "user_rotation", timeout=10).stdout.strip()
+        except (LauncherError, OSError) as error:
+            self.log("guest-display-rotation-lock-skipped", error=str(error)[:200])
+            return False
+        self._guest_rotation_locked = readback == str(int(rotation))
+        if self._guest_rotation_locked:
+            self.log("stage=guest-display-rotation-locked", user_rotation=int(rotation))
+        else:
+            self.log("guest-display-rotation-lock-unconfirmed", readback=readback[:40])
+        return self._guest_rotation_locked
+
+    def align_visible_emulator(self) -> None:
+        """Rotate the host window until it renders the guest upright.
+
+        Runs once the game window has resumed, because the guest's
+        SENSOR_LANDSCAPE display rotation is only settled by then. A lane whose
+        last align was verified holds that orientation instead of re-deriving it:
+        the persisted pin is applied, the deterministic roll is parked, and one
+        settled guest/host pair decides (see hold_guest_display_pin). Only a hold
+        that does not measure upright falls through to the full align, where the
+        emulator rebuilds its window layout only when it observes a guest
+        rotation change while its window is up, so one deliberate quarter-turn is
+        provoked first (guest-rotation change) and the offset is then corrected
+        with console rotates - the only supported lever, since emulator 32.1.15
+        exposes no launch flag, AVD setting, or readable getter for the host
+        window rotation.
+
+        The guest-rotation delta supplies the *candidate* step count only, and is
+        never trusted on its own: measured 2026-09-18 the console `rotate` also
+        advances the guest display quarter, so the offset model can be off by a
+        quarter while every row of its arithmetic still looks right (the lane
+        ended in a 90-degree strip with `rotate_steps=2` logged). The picture is
+        the authority: verify_visible_render compares the launcher's own grim of
+        the emulator window with a paired guest screencap and drives the bounded
+        recovery plan (see RENDER_RECOVERY_PLAN) until the frames match - or logs
+        that it could not see. The display is pinned only for a render whose
+        measurement says upright, because the pin is what stops the accelerometer
+        from moving it.
+        """
+        if getattr(self.args, "headless", False):
+            return
+        if not self.desktop_compositor_available():
+            # No desktop compositor: gamescope presents the emulator window on a
+            # fixed output, so there is no window rotation to measure or correct,
+            # and provoking a guest rotation would restart the game's
+            # SENSOR_LANDSCAPE activity. Locking the parked landscape quarter is
+            # what keeps the picture upright; the host is left alone.
+            self.log("display-alignment-skipped",
+                     reason="no desktop compositor (gamescope session)")
+            self.lock_guest_display_rotation(PARKED_GUEST_ROTATION)
+            return
+        hint = self.load_display_pin()
+        if hint is not None and self.hold_guest_display_pin(hint):
+            # The proven orientation held: no provoke cycle and no rotate at
+            # startup, which is the whole point of persisting it.
+            return
+        rotation = self.wait_for_guest_display_rotation()
+        if rotation is None:
+            self.log("display-alignment-skipped", reason="guest display rotation never settled landscape")
+            return
+        moved = self.provoke_guest_display_rotation(rotation)
+        if moved is None:
+            self.log("display-alignment-skipped", reason="guest display rotation did not move",
+                     guest_rotation=rotation)
+            # The window could not be re-derived, but the quarter the guest did
+            # settle on can still be pinned: that is what stops Tilt Drive from
+            # flipping the render under the user later (measured 2026-09-18).
+            self.lock_guest_display_rotation(rotation)
+            return
+        steps = self.host_rotation_steps(moved, rotation)
+        for _ in range(steps):
+            self.console_send("rotate")
+        self.log("stage=display-orientation-candidate", guest_rotation=moved,
+                 provoked_from=rotation, rotate_steps=steps, source="guest-rotation-delta")
+        # The picture decides. Every correction below moves the display and
+        # re-parks, so the pin (and the rotation the guard maintains) comes after
+        # the corrections settle.
+        verified = self.verify_visible_render(moved)
+        settled = self.guest_display_rotation()
+        self._aligned_guest_rotation = settled if settled is not None else moved
+        self.log("stage=display-orientation-aligned", guest_rotation=self._aligned_guest_rotation,
+                 provoked_from=rotation, rotate_steps=steps,
+                 measured_offset=getattr(self, "_last_measured_offset", None))
+        if verified != 0 and getattr(self, "_last_measured_offset", None) is not None:
+            # A render that was measured and is NOT upright must not be pinned:
+            # the pin is what freezes the display against the accelerometer, so
+            # pinning here is what made a wrong orientation permanent for the
+            # rest of the lane (measured 2026-09-18). Leaving it unpinned keeps
+            # the recovery channel open for the guard and the next attempt.
+            self.unpin_guest_display_rotation()
+            self.log("stage=display-orientation-unpinned",
+                     reason="render measured not upright; not freezing it with the pin",
+                     last_offset=getattr(self, "_last_measured_offset", None))
+            return
+        self.save_display_pin(self._aligned_guest_rotation)
+        self.lock_guest_display_rotation(self._aligned_guest_rotation)
+
+    def guard_display_orientation(self) -> None:
+        """Keep the host window upright after the guest display rotation moves.
+
+        The emulator re-derives its window rotation whenever the guest display
+        rotation changes, and lands 90 degrees off — the game then renders as a
+        sideways portrait strip. The guest requests SENSOR_LANDSCAPE, so this can
+        only happen if something feeds its accelerometer while the Deck is
+        handled (Gamepad mode parks the feed; Tilt Drive streams it by design).
+        One short ADB read per polling tick, and only when the launcher has
+        aligned at least once: a stable session issues no rotates at all.
+
+        Thrash rules (user directive 2026-09-18): one correction burst per flip,
+        never a second burst inside GUARD_ROTATE_COOLDOWN, a full stabilization
+        window after each burst, the sensor re-parked flat afterwards, and no
+        correction at all while the guest sits on the parked rotation.        """
+        if getattr(self.args, "headless", False):
+            return
+        if self._aligned_guest_rotation is None:
+            # Nothing has been aligned, so there is no relation to maintain: the
+            # align stage owns that state and logs its own skip reason. Reading
+            # the rotation here would cost an ADB call on every tick of a lane
+            # that never aligned, and could only produce a guess.
+            return
+        now = time.monotonic()
+        if now < self._guard_quiet_until:
+            return  # still inside the stabilization window after a burst
+        try:
+            rotation = self.guest_display_rotation()
+        except Exception as error:  # noqa: BLE001 - the guard must never abort the poll
+            # guest_display_rotation already reports its own failures; this is the
+            # last line of defence for a caller (the poll) that cannot take one.
+            if not self._guard_read_failed:
+                self._guard_read_failed = True
+                self.log("display-orientation-read-failed", error=str(error)[:120])
+            return
+        if rotation is None:
+            return
+        previous = self._aligned_guest_rotation
+        if rotation == previous:
+            return
+        if self._guard_rotated_for == rotation:
+            return  # this quarter has already been corrected once
+        if getattr(self, "_guest_rotation_locked", False):
+            # A pinned quarter cannot flip outside Tilt Drive, so there is
+            # nothing to repair: this state means the pin did not hold.
+            return
+        if (self._guard_last_rotate_at is not None
+                and now - self._guard_last_rotate_at < GUARD_ROTATE_COOLDOWN):
+            return  # never two bursts inside the cooldown, however the guest flaps
+        steps = self.host_rotation_steps(rotation, previous)
+        for _ in range(steps):
+            self.console_send("rotate")
+        # Re-park: the guest is only re-derived from a change, and leaving the
+        # feed live is what makes a corrected rotation move again.
+        self.console_send(format_sensor_set(NEUTRAL_ACCELERATION).decode().strip())
+        self._guard_last_rotate_at = now
+        self._guard_rotated_for = rotation
+        self._guard_quiet_until = now + GUEST_ROTATION_SETTLE_TIMEOUT
+        self.log("display-orientation-repaired", guest_rotation=rotation,
+                 previous_rotation=previous, rotate_steps=steps)
+        self._aligned_guest_rotation = rotation
 
     def isolate_guest(self) -> None:
         self.log("stage=trusted-root-isolation")
@@ -483,6 +1391,22 @@ class Launcher:
             raise LauncherError("shell UID 2000 cannot read/write /dev/uhid")
         self.log("stage=guest-unrooted", uid=2000, uhid="shell-readable-writable")
 
+    def seed_guest_media_volume(self) -> None:
+        """Raise the guest STREAM_MUSIC index so the race mix is audible.
+
+        One guest setting write through the emulator's ``media`` tool plus an
+        independent read-back, recorded as ``stage=media-volume-seeded`` with
+        the guest's actual index. A guest that refuses the write is logged as
+        skipped rather than failing the launch: the mix is otherwise carried by
+        the persisted guest volume and the host sink.
+        """
+        try:
+            volume = seed_media_volume(self.adb)
+        except (LauncherError, OSError) as error:
+            self.log("stage=media-volume-seed-skipped", error=str(error)[:200])
+            return
+        self.log("stage=media-volume-seeded", **volume)
+
     def verify_packages(self) -> None:
         required = required_packages()
         installed = set(re.findall(r"^package:(\S+)\s*$", self.adb("shell", "pm", "list", "packages").stdout, re.MULTILINE))
@@ -525,6 +1449,36 @@ class Launcher:
         if self.window_guard is not None:
             (self.run_dir / "game-window-reveal.json").write_text(json.dumps({"resumed_package": GAME}) + "\n")
         self.log("stage=running", resumed_package=GAME)
+
+    def claim_deck_pad(self) -> None:
+        """Take the built-in pad from the Desktop-Mode mapper before the bridge.
+
+        In Desktop Mode ``deck-input-mapper`` holds an exclusive EVIOCGRAB on
+        the pad's evdev node, and the kernel then delivers that device's events
+        to the grabbing handle only: the bridge's ``/dev/input/js0`` receives
+        nothing but its open-time state snapshot, so every physical press is
+        lost without a single error (measured on this Deck 2026-09-18: zero live
+        js0 events in seven hours of capture while the user was pressing
+        controls).  The pair in deck_pad is lane-scoped, reversed in cleanup(),
+        and idempotent; a lane that cannot claim the pad still launches, with
+        the reason logged here and named again by the bridge on its own stderr.
+        """
+        mode = getattr(self.args, "input_mode", "")
+        if mode != "joystick":
+            # Only the joystick lane reads the pad; a QA-socket lane leaves the
+            # Desktop-Mode mapper holding it, so the operator keeps the pointer.
+            self.log("stage=deck-pad-claim-skipped",
+                     reason=f"input mode {mode or 'unknown'} does not read the pad")
+            return
+        try:
+            state = claim_pad()
+        except (DeckPadError, OSError, subprocess.SubprocessError) as error:
+            self.log("stage=deck-pad-claim-skipped", error=str(error)[:200])
+            return
+        self._deck_pad_state = state
+        (self.run_dir / "deck-pad-ownership.json").write_text(
+            json.dumps(state, sort_keys=True) + "\n", encoding="utf-8")
+        self.log("stage=deck-pad-claimed", **state)
 
     def start_input(self) -> None:
         self.router = InputRouter(self, self.controller_input)
@@ -722,10 +1676,7 @@ class Launcher:
             if now < next_game_poll:
                 continue
             next_game_poll = now + GAME_QUIT_POLL_INTERVAL
-            if getattr(self.router, "_controls_panel", None) is not None:
-                # Host settings panel is open: deliberate pause, never a quit.
-                quit_streak = 0
-                continue
+            self.guard_display_orientation()
             resumed, task_present, confirmed, detail = self.read_resumed_package()
             if not confirmed:
                 # Unknown sample breaks consecutiveness: reset the window so
@@ -880,6 +1831,10 @@ class Launcher:
                 attempt("controller stdin", self.controller_input.close)
             for owned in reversed(self.children):
                 attempt(owned.name, lambda owned=owned: self.stop_owned(owned))
+            if self._deck_pad_state is not None:
+                pad_state, self._deck_pad_state = self._deck_pad_state, None
+                attempt("deck pad release", lambda: self.log(
+                    "stage=deck-pad-released", **release_pad(pad_state)))
             attempt("cleanup log", lambda: self.log("stage=cleanup-complete", errors=errors))
         finally:
             try:
@@ -935,22 +1890,6 @@ class Launcher:
                 raise LauncherError(f"cannot close {owned.name} resources: " + "; ".join(errors))
         self.log("process-exit", name=owned.name, pid=process.pid, returncode=process.returncode)
 
-    def choose_controls_before_launch(self) -> bool:
-        """Run the Tk chooser in the selected UI interpreter; True means Play."""
-        panel = self.spawn("control-settings", [
-            ui_python(), str(ROOT / "linux-launcher/controls_settings.py"),
-            "--settings", str(self.run_dir.parent / "tilt-settings.json")], "control-settings.log")
-        while panel.process.poll() is None:
-            if self.stop_requested:
-                return False  # cleanup stops the owned chooser group
-            time.sleep(0.1)
-        returncode = panel.process.returncode
-        self.log("control-settings-exit", returncode=returncode)
-        if returncode == 3:
-            # The chooser itself failed; do not turn a UI fault into "no Play".
-            self.log("warning", detail="controls chooser failed; launching with saved driving mode")
-        return returncode in (0, 3)
-
     def owned_progression_session(self):
         """Owned install target for an explicit progression-variant switch.
 
@@ -994,14 +1933,14 @@ class Launcher:
             raise LauncherError(f"progression switch uncertain; launch aborted: {message[:300]}")
 
     def main(self) -> int:
-        if getattr(self.args, "control_settings", False) and not self.choose_controls_before_launch():
-            return 130 if self.stop_requested else 0
         stages = (self.acquire_launch_locks, self.preflight, self.start_server,
                   self.start_emulator, self.orient_visible_emulator,
-                  self.isolate_guest,
+                  self.isolate_guest, self.seed_guest_media_volume,
                   self.maybe_apply_progression_switch,
-                  self.verify_packages, self.start_controller, self.start_input,
-                  self.launch_game, self.verify_gamescope_window)
+                  self.verify_packages, self.start_controller, self.claim_deck_pad,
+                  self.start_input,
+                  self.launch_game, self.verify_gamescope_window,
+                  self.align_visible_emulator)
         for stage in stages:
             if self.stop_requested:
                 return 130
@@ -1037,14 +1976,14 @@ class InputRouter:
         self._sensor_transport = None  # ConsoleSensorTransport for native accel
         self._sensor_retry_at = 0.0  # backoff: don't reconnect every frame
         self._native_state = "unknown"  # live | unavailable | degraded
+        self._desktop_compositor: bool | None = None  # cached Hyprland probe
+        self._pose_logged = False  # one stage=guest-pose-deterministic row per lane
         self._native_error: str | None = None
         self._native_ever_live = False
         self._native_settled = False  # guest already holds our level value
         self._ctl_context: dict = {}  # last requested/available/error for status
         self._stick_axes = {"LX": 0.0, "LY": 0.0}
         self._stick_gate_held = False  # tilt owns LX/LY (neutral sent on engage)
-        self._controls_panel = None
-        self._view_down = False
         # Side-channel: raw-event Unix socket for driving control mapping
         self._side_channel: BridgeSideChannel | None = None
         # DeckControls: runner-owned instance for side-channel mode
@@ -1127,8 +2066,8 @@ class InputRouter:
         silently re-enable the physical sticks (that would double-drive
         against a recovering sensor feed and yank the car). Tilt Drive
         with a dead sensor therefore steers nothing; the dead feed is
-        surfaced loudly via control-mode.json ``native_error`` and the
-        panel, telling the user to select Gamepad or recover the sensor.
+        surfaced loudly via control-mode.json ``native_error``, telling the
+        user to recover the sensor.
         Buttons and triggers are never gated — Tilt Drive disables LX/LY
         only. Reconnect-safe: no per-device state, mode is re-read from
         the persisted setting, so a re-attached pad resumes gated.
@@ -1154,8 +2093,7 @@ class InputRouter:
         always forwarded; the game's own Gamepad toggle (kept ON)
         arbitrates guest-side.
         """
-        if self._consume_panel_input(event, raw=True):
-            return False
+        self._cache_stick(event, raw=True)
         if not stick_gate_allows(event, self._tilt_steering_active()):
             return False
         if event.get("type") == "button" and event.get("key") in UNASSIGNED_BUTTONS:
@@ -1203,11 +2141,13 @@ class InputRouter:
             event = json.loads(payload)
             if not isinstance(event, dict) or not isinstance(event.get("type"), str):
                 raise ValueError("event must be a JSON object with type")
-            if event.get("type") == "control_mode":
-                self.change_control_mode(event.get("mode"), event.get("request_id"))
                 return
-            if self._consume_panel_input(event):
-                return
+            if event["type"] not in ("axis", "button"):
+                # Clients speak axis/button only; anything else (e.g. the
+                # retired panel control_mode request) must never reach the
+                # guest as a bogus event.
+                raise ValueError(f"unsupported event type: {event['type']!r}")
+            self._cache_stick(event)
             if not stick_gate_allows(event, self._tilt_steering_active()):
                 return
             if event.get("type") == "button" and event.get("key") in UNASSIGNED_BUTTONS:
@@ -1304,6 +2244,14 @@ class InputRouter:
             settings = TiltSettings(tilt_settings_path)
             self._tilt_adapter = TiltAdapter(settings=settings)
             requested = settings.mode
+            if requested == ControlMode.TILT and not TILT_DRIVE_SELECTABLE:
+                # One-way migration (2026-09-18): the previous lane could persist
+                # Tilt Drive, and honouring it here would arm a mode whose display
+                # flips. Rewrite it once, visibly, before anything reads it.
+                self.launcher.log("stage=tilt-drive-disabled", persisted_mode="tilt",
+                                  reason="sensor-landscape display flip; no rotation-hold lever")
+                self._tilt_adapter.select_mode(ControlMode.GAMEPAD)  # persists + updates the adapter
+                requested = ControlMode.GAMEPAD
             available, error = self._open_motion(self._tilt_adapter)
             if requested == ControlMode.TILT and not available:
                 # FAIL-CLOSED startup: keep persisted Tilt Drive (gate stays
@@ -1418,7 +2366,7 @@ class InputRouter:
                 self.launcher.log("sensor-console-error", error=str(error))
 
     def _neutral_sensor(self) -> None:
-        """Level the guest accelerometer once (panel open only).
+        """Level the guest accelerometer once.
 
         Mode switches need no explicit neutral: the always-on push below
         settles the guest on stale data by itself.
@@ -1438,20 +2386,23 @@ class InputRouter:
                                    self._native_sink_error(transport.last_error))
 
     def _push_tilt_to_guest(self) -> None:
-        """Mirror live Deck tilt into the guest accelerometer (always-on).
+        """Feed the guest accelerometer: live tilt in Tilt Drive, flat otherwise.
 
-        Runs in EVERY View mode whenever the IMU is owned: the game's own
-        Gamepad toggle chooses between this native feed (OFF) and the
-        synthetic sticks (ON). When the host IMU is not owned the guest
-        sensor is left strictly alone at its emulator default. Stale IMU
-        levels the guest exactly once; the transport throttle suppresses
-        redundant frames and a 2 s reconnect backoff prevents pump spins.
-
-        Contract (Sept-14): ``poll_native()`` MUST run before
-        ``sensor_acceleration()`` — the estimator receives samples ONLY
-        here, so without this call the vector is frozen at neutral and
-        physical rotation can never reach the guest. Still no synthetic
-        axes: ``consume_motion`` is never called.
+        Tilt Drive streams the live Deck IMU — the estimator receives samples
+        ONLY here, so ``poll_native()`` MUST run before
+        ``sensor_acceleration()``, and ``consume_motion`` is never called (no
+        synthetic axes). Every other mode holds the guest at the parked flat
+        pose instead (see ``_park_guest_sensor``). That is deliberate: the game
+        window requests SCREEN_ORIENTATION_SENSOR_LANDSCAPE, so a live sensor
+        feed re-decides the *guest display rotation* whenever the Deck moves
+        (Android 9 consults the sensor for SENSOR_LANDSCAPE regardless of the
+        rotation lock), and the emulator rotates its host window 90 degrees off
+        on every such change — the game then renders as a sideways portrait
+        strip. Gamepad driving consumes the controller, not the accelerometer,
+        so parking costs nothing there. When the host IMU is not owned the guest
+        sensor is left strictly alone at its emulator default. Stale IMU levels
+        the guest exactly once; the transport throttle suppresses redundant
+        frames and a 2 s reconnect backoff prevents pump spins.
         """
         adapter = self._tilt_adapter
         if adapter is None:
@@ -1472,6 +2423,9 @@ class InputRouter:
             self._set_native_state("unavailable", self._native_sink_error(None))
             self._native_settled = False
             return
+        if not self._tilt_steering_active():
+            self._park_guest_sensor(transport)
+            return
         try:
             stale = adapter._estimator.is_stale(time.monotonic())
         except AttributeError:
@@ -1491,6 +2445,32 @@ class InputRouter:
             self._native_ever_live = True
             self._native_settled = stale
             self._set_native_state("live", None)
+        else:
+            self._native_settled = False
+            self._set_native_state("degraded" if self._native_ever_live else "unavailable",
+                                   self._native_sink_error(transport.last_error))
+
+    def _park_guest_sensor(self, transport) -> None:
+        """Hold the guest accelerometer at the deterministic parked pose.
+
+        NEUTRAL_ACCELERATION is the device lying flat with a deliberate ~2
+        degree roll: neutral for the game's own tilt mode (the roll is inside any
+        dead zone) and DETERMINISTIC for the framework, whose landscape quarter is
+        ambiguous when gravity sits on +Z alone - measured 2026-09-18, a single
+        emulator console `rotate` flipped the guest display 1 -> 3 with the
+        display pin in place. Pushed once per transport session or ownership
+        change (``_native_settled``); the transport throttle keeps the channel
+        quiet afterwards.
+        """
+        if transport.set_acceleration(NEUTRAL_ACCELERATION, force=not self._native_settled):
+            self._native_ever_live = True
+            self._native_settled = True
+            self._set_native_state("live", None)
+            if not self._pose_logged:
+                self._pose_logged = True
+                self.launcher.log("stage=guest-pose-deterministic",
+                                  acceleration=list(NEUTRAL_ACCELERATION),
+                                  reason="flat pose is roll-ambiguous for the framework quarter")
         else:
             self._native_settled = False
             self._set_native_state("degraded" if self._native_ever_live else "unavailable",
@@ -1540,6 +2520,26 @@ class InputRouter:
                 "or tilt resumes automatically when the feed reconnects. "
                 "Keep the in-game Gamepad toggle ON.")
 
+    def _cache_stick(self, event, raw=False) -> None:
+        """Remember the last cooked LX/LY so a gate release re-drives it.
+
+        The cache is what ``_restore_stick`` replays after a mode change:
+        it must hold the value the guest actually received, so raw bridge
+        events are cached through the same DeckControls curve as the live
+        forwarding path.
+        """
+        if event.get("type") != "axis" or event.get("axis") not in self._stick_axes:
+            return
+        value = event.get("value")
+        if not isinstance(value, (int, float)) or not -1 <= value <= 1:
+            return
+        if raw and self._deck_controls is not None:
+            translated = self._deck_controls.translate(event)
+            if not translated:
+                return
+            event = translated[0]
+        self._stick_axes[event["axis"]] = event["value"]
+
     def _neutral_axes(self):
         for axis in ("LX", "LY"):
             self._forward_event({"type": "axis", "axis": axis, "value": 0.0})
@@ -1553,7 +2553,8 @@ class InputRouter:
         for axis, value in self._stick_axes.items():
             self._forward_event({"type": "axis", "axis": axis, "value": value})
 
-    def change_control_mode(self, requested, request_id=None):
+    def _apply_control_mode(self, requested, request_id=None):
+        """Apply a driving mode (Gamepad or the retained Tilt Drive engine)."""
         if requested not in ("gamepad", "tilt") or not isinstance(request_id, (str, type(None))):
             self._write_control_status(str(requested), False, "Invalid driving mode request.")
             return
@@ -1594,86 +2595,18 @@ class InputRouter:
         # so sync the transition flag: _mirror_native_sensor then only
         # settles ownership-driven changes (sensor drop/recovery).
         self._stick_gate_held = self._tilt_steering_active()
-        if self._controls_panel is None:
-            self._restore_stick()
+        self._restore_stick()
         # The native feed is always-on by design (the game's own Gamepad
         # toggle arbitrates), so leaving Tilt never closes the console
         # session: the next pump keeps mirroring live tilt either way.
         self._write_control_status(requested, available, error, request_id)
-
-    def _consume_panel_input(self, event, raw=False):
-        if event.get("type") == "axis" and event.get("axis") in self._stick_axes:
-            value = event.get("value")
-            if isinstance(value, (int, float)) and -1 <= value <= 1:
-                cached = self._deck_controls.translate(event)[0] if raw and self._deck_controls else event
-                self._stick_axes[event["axis"]] = cached["value"]
-        if event.get("type") == "button" and event.get("key") == "VIEW":
-            down = event.get("action") == "down"
-            if down and not self._view_down:
-                self.open_controls_panel()
-            self._view_down = down
-            return True
-        return self._controls_panel is not None
-
-    def open_controls_panel(self):
-        if self._controls_panel is not None:
-            return
-        marker = self.launcher.run_dir / "controls-panel-active"
-        marker.touch()
-        try:
-            self._neutral_axes()
-            # Level the guest accelerometer so opening settings cannot
-            # leave a held tilt driving the car behind the panel. The
-            # helper no-ops when the host IMU is not owned.
-            self._neutral_sensor()
-            # Release driving buttons/triggers so opening the panel cannot
-            # leave an accelerator or held action active in the guest.
-            for axis in ("RX", "RY", "LT", "RT"):
-                self._forward_event({"type": "axis", "axis": axis, "value": 0.0})
-            for key in ("LB", "RB", "X", "Y", "BACK"):
-                self._forward_event({"type": "button", "key": key, "action": "up"})
-            if self._deck_controls is not None:
-                self._deck_controls.accelerating = None
-            self._controls_panel = self.launcher.spawn("controls-panel", [
-                ui_python(), str(ROOT / "linux-launcher/controls_settings.py"),
-                "--run-dir", str(self.launcher.run_dir)], "controls-panel.log")
-        except Exception as error:
-            marker.unlink(missing_ok=True)
-            self._restore_stick()
-            self.launcher.log("controls-panel-error", error=str(error))
-
-    def _poll_controls_panel(self):
-        if self._controls_panel is None or self._controls_panel.process.poll() is None:
-            return
-        self._controls_panel = None
-        (self.launcher.run_dir / "controls-panel-active").unlink(missing_ok=True)
-        self._view_down = False
-        self._neutral_axes()
-        self._native_settled = False  # let the always-on push resume live tilt
-        self._restore_stick()
-        if self.launcher.window_guard is None and self.launcher.emulator is not None:
-            # Desktop also needs an explicit return from the panel; Gamescope
-            # restores via its owned window helper when the marker disappears.
-            try:
-                from gamescope_window import X11
-                adapter = X11()
-                try:
-                    windows = [w for w in adapter.inventory()
-                               if w.pid == self.launcher.emulator.process.pid and
-                               'Emulator' in w.classes and w.title.startswith('Android Emulator - ')]
-                    if len(windows) == 1:
-                        adapter.present(windows[0].xid)
-                finally:
-                    adapter.close()
-            except Exception as error:
-                self.launcher.log("controls-focus-error", error=str(error))
 
     def _native_live(self) -> bool:
         """True when the host IMU is owned and the native feed may run."""
         return self._tilt_adapter is not None and bool(getattr(self._tilt_adapter, "_open", False))
 
     def _mirror_native_sensor(self) -> None:
-        """Push the always-on native feed unless the panel pause holds it.
+        """Push the always-on native feed.
 
         Corrected-C: NO synthetic IMU axes are ever forwarded. The router
         never calls ``consume_motion``; Deck tilt reaches the game ONLY as
@@ -1683,8 +2616,6 @@ class InputRouter:
         levels any held stick (neutral), releasing it restores the cached
         stick so neither transition can leave a stuck or dead axis.
         """
-        if self._controls_panel is not None:
-            return
         armed = self._tilt_steering_active()
         if armed != self._stick_gate_held:
             self._stick_gate_held = armed
@@ -1697,12 +2628,11 @@ class InputRouter:
     def pump(self, duration: float = 0.25) -> None:
         # Mirror the native sensor before processing bridge/client events
         # so they appear on the same timeline in temporal order.
-        self._poll_controls_panel()
         self._mirror_native_sensor()
         # Sensor input is sampled by the adapter rather than registered in
         # this selector. Poll fast whenever the IMU is owned so the native
         # feed stays live; View mode no longer affects cadence.
-        if self._native_live() and self._controls_panel is None:
+        if self._native_live():
             duration = min(duration, 0.01)
         for key, _ in self.selector.select(duration):
             if key.data == "listener":
@@ -1774,24 +2704,6 @@ class InputRouter:
             raise LauncherError("input resources could not close: " + "; ".join(errors))
 
 
-def ui_python(root: Path = ROOT, env=None) -> str:
-    """Interpreter with Tk for the touch panels; the runner may lack tkinter.
-
-    Order: explicit JCS2_UI_PYTHON, the project-local runtime/ui-python, the
-    installed runtime/python, then the runner's own interpreter.
-    """
-    value = (os.environ if env is None else env).get("JCS2_UI_PYTHON", "")
-    if value:
-        path = Path(value).expanduser()
-        if not path.is_absolute() or not path.is_file() or not os.access(path, os.X_OK):
-            raise LauncherError(f"JCS2_UI_PYTHON is not an absolute executable path: {value}")
-        return str(path)
-    for candidate in (root / "runtime/ui-python/bin/python3", root / "runtime/python/bin/python3"):
-        if candidate.is_file() and os.access(candidate, os.X_OK):
-            return str(candidate)
-    return sys.executable
-
-
 def required_packages(env=None) -> list[str]:
     """The game is always required; extra guest packages are explicit opt-ins."""
     value = (os.environ if env is None else env).get("JCS2_REQUIRE_PACKAGES", "")
@@ -1819,7 +2731,6 @@ def wait_until(predicate, timeout: float, label: str) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--control-settings", action="store_true", help="choose stick or tilt controls before Play")
     parser.add_argument("--headless", action="store_true", help="hide the emulator window for QA")
     parser.add_argument("--input", dest="input_mode", choices=("joystick", "qa"),
                         default=os.environ.get("JCS2_INPUT", "joystick"),

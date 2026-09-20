@@ -277,7 +277,7 @@ overridden except where they are quoted as superseded.
   2026-09-18/19/20 session — Gaming Mode work, the installer, the tilt-panel
   removal, the HUD/audio/deck-pad modules — existed only in the workstation
   working tree. It is now committed and pushed as
-  **`9a1b3a0f7547e4c916d459042d1e2a5d1d07beb9`** (fast-forward from `410625e`,
+  **`9a1b3a0f7546e4c916d459042d1e2a5d1d07beb9`** (fast-forward from `410625e`,
   no divergence; `git ls-remote origin refs/heads/main` agrees). §9.2 lists what
   that commit carries and §9.7 records the fresh-clone proof of it. That SHA is
   the *source-content* commit; docs-only commits may sit on top of it, so use
@@ -521,7 +521,7 @@ payload plus a Deck target, which is why §9.8 and §9.9 stay as they are.
 
 **Post-push verification of the exact commit (same day, log
 `logs/fresh-clone-verify.log`).** `git clone` of the private remote at
-`9a1b3a0f7547e4c916d459042d1e2a5d1d07beb9` (the SHA `ls-remote` reports for
+`9a1b3a0f7546e4c916d459042d1e2a5d1d07beb9` (the SHA `ls-remote` reports for
 `main`, fast-forward from `410625e`, no divergence) gives a tree that contains
 every session file listed in §9.2 — `deck_pad.py`, `hud_layout.py`,
 `qt_settings.py`, `test-hud-layout.py`, `install_jcs2.py`, `setup-jcs2.sh`,

@@ -855,8 +855,10 @@ def verify_guest_native_libs(cfg: BootstrapConfig, env, timeout: float = 90.0) -
         return
     deadline = time.monotonic() + timeout
     found: dict = {}
+    resolved = ""
     while time.monotonic() < deadline:
         directory = _guest_native_lib_dir(cfg, env)
+        resolved = directory or resolved
         if directory:
             listing = _run_adb(cfg, env, "shell", "sha256sum", f"{directory}/*.so", timeout=30)
             found = {}
@@ -870,7 +872,8 @@ def verify_guest_native_libs(cfg: BootstrapConfig, env, timeout: float = 90.0) -
     raise BootstrapError(
         EXIT_INSTALL,
         "guest native libraries do not match the shipped APK; refusing to call this "
-        f"install complete (expected {sorted(expected)}, guest has {sorted(found)})")
+        f"install complete (expected {sorted(expected)}, guest has {sorted(found)}); "
+        f"resolved native library directory: {resolved!r}")
 
 
 def execute_bootstrap(cfg: BootstrapConfig) -> int:

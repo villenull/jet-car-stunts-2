@@ -90,6 +90,7 @@ PACKAGE_NAME = re.compile(r"[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+")
 ADB_PORT = 5038
 CONSOLE_PORT = 5594
 SERIAL = "127.0.0.1:5595"
+DRM_DIR = Path("/dev/dri")
 # Buttons with no guest action. A and B are menu-free (native touch does
 # menus); DPAD is dropped by DeckControls. VIEW (physical SELECT) had the
 # host panel as its only action; with the panel gone it is dropped here so
@@ -728,31 +729,62 @@ class Launcher:
         """Build isolation argv with the script kept as one ADB shell arg."""
         return [str(SDK / "platform-tools/adb"), "-P", str(ADB_PORT), "-s", SERIAL, "shell", ISOLATION_SCRIPT]
 
-    def gpu_mode(self) -> str:
-        """Emulator GPU mode for this session.
+    def host_gpu_capable(self) -> bool:
+        """True when a DRM render node the lane can use is present.
 
-        `-gpu host` is the desktop default and the proven 60 fps path, but it
-        needs a desktop GL context: inside a gamescope session its color buffers
-        fail ("ColorBuffer::create get gl error 0x502", "bad color buffer
-        handle" in emulator.log) and the guest's surface dies with the game a few
-        seconds after launch. The AVD is provisioned for swiftshader_indirect,
-        which gamescope does not fight. JCS2_GPU overrides either choice.
+        Renderer choice is a *capability* question, not a session question. The
+        Hyprland probe below answers "can this lane measure the host window",
+        which is what the align stage needs - it is not evidence about whether
+        the host can render. Tying `-gpu host` to it meant every session without
+        a queryable Hyprland (gamescope, and any stock SteamOS desktop) fell
+        back to software rendering on machines whose GPU was perfectly usable:
+        measured 2026-09-20 on this Deck, software gave 22.5 fps in menus and
+        29.07-29.59 fps in a race while a host-GPU run rendered the same menus
+        at 59.14 fps (game pid only; SurfaceFlinger 1:1).
+
+        Cached: a session cannot gain or lose its render node mid-lane.
+        """
+        if getattr(self, "_host_gpu", None) is None:
+            nodes = sorted(DRM_DIR.glob("renderD*")) if DRM_DIR.is_dir() else []
+            usable = [node for node in nodes if os.access(node, os.R_OK | os.W_OK)]
+            self._host_gpu = bool(usable)
+            if not self._host_gpu:
+                self.log("display-gpu-unavailable",
+                         reason="no usable /dev/dri/renderD* node",
+                         nodes=[str(node) for node in nodes])
+        return self._host_gpu
+
+    def gpu_mode_decision(self) -> dict:
+        """Renderer decision plus the reason it was taken, for the lane log.
+
+        `JCS2_GPU` wins; otherwise the host is used exactly when the machine can
+        render on it. There is no silent software fallback: a host lane that
+        cannot boot fails loudly (see start_emulator), and the documented remedy
+        is the `JCS2_GPU=swiftshader_indirect` override.
         """
         override = os.environ.get("JCS2_GPU", "").strip()
         if override:
-            return override
-        return "host" if self.desktop_compositor_available() else "swiftshader_indirect"
+            return {"mode": override, "reason": "JCS2_GPU override"}
+        if self.host_gpu_capable():
+            return {"mode": "host", "reason": "usable DRM render node"}
+        return {"mode": "swiftshader_indirect", "reason": "no usable DRM render node"}
+
+    def gpu_mode(self) -> str:
+        """Emulator GPU mode for this session (see gpu_mode_decision)."""
+        return self.gpu_mode_decision()["mode"]
 
     def start_emulator(self) -> None:
+        decision = self.gpu_mode_decision()
         argv = [str(SDK / "emulator/emulator"), "-avd", AVD, "-port", str(CONSOLE_PORT), "-no-snapshot", "-no-boot-anim",
                 "-adb-path", str(SDK / "platform-tools/adb"),
-                "-gpu", self.gpu_mode(), "-memory", "1536", "-qemu", "-net", "none"]
+                "-gpu", decision["mode"], "-memory", "1536", "-qemu", "-net", "none"]
         if self.args.headless:
             argv.insert(argv.index("-qemu"), "-no-window")
         else:
             argv.insert(argv.index("-qemu"), "-fixed-scale")
         self.emulator = self.spawn("emulator", argv, "emulator.log")
         self.start_gamescope_window_guard()
+        self.log("stage=gpu-mode", mode=decision["mode"], reason=decision["reason"])
         self.log("stage=emulator-start", network="none", snapshots="disabled", headless=self.args.headless)
         deadline = time.monotonic() + 180
         while time.monotonic() < deadline and not self.stop_requested:

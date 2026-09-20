@@ -873,6 +873,12 @@ def verify_guest_native_libs(cfg: BootstrapConfig, env, timeout: float = 90.0) -
                 if len(parts) == 2:
                     found[Path(parts[1]).name] = parts[0]
             if all(found.get(name) == digest for name, digest in expected.items()):
+                # Success must be asserted, not merely the absence of a
+                # failure: record what matched and where.
+                for name, digest in sorted(expected.items()):
+                    print(f"native-lib match: {name} sha256={digest} "
+                          f"dir={directory}", flush=True)
+                verify_no_fatal_exception(cfg, env)
                 return
         time.sleep(3)
     # Capture the guest's own view before anything stops the emulator: the
@@ -888,6 +894,24 @@ def verify_guest_native_libs(cfg: BootstrapConfig, env, timeout: float = 90.0) -
         f"install complete (expected {sorted(expected)}, guest has {sorted(found)}); "
         f"resolved native library directory: {resolved!r}; "
         f"guest listing: {listing.stdout.strip()[:400]}")
+
+
+def verify_no_fatal_exception(cfg: BootstrapConfig, env) -> None:
+    """The launched app must come up without a Java crash.
+
+    The loader failure that started this whole investigation surfaced here as
+    `FATAL EXCEPTION ... UnsatisfiedLinkError`, so a fresh install cannot be
+    called successful while the crash buffer names our package. The buffer is
+    cleared immediately before the launch, so an entry is this launch's.
+    """
+    crash = _run_adb(cfg, env, "logcat", "-d", "-b", "crash", timeout=30)
+    if f"Process: {PACKAGE}" in crash.stdout:
+        excerpt = " | ".join(line.strip() for line in crash.stdout.splitlines()
+                             if PACKAGE in line)[:400]
+        raise BootstrapError(
+            EXIT_LAUNCH,
+            f"the launched app crashed: logcat crash buffer names {PACKAGE} ({excerpt})")
+    print(f"launch clean: no Java crash recorded for {PACKAGE}", flush=True)
 
 
 def execute_bootstrap(cfg: BootstrapConfig) -> int:
@@ -1026,6 +1050,7 @@ def execute_bootstrap(cfg: BootstrapConfig) -> int:
                 capture_output=True, text=True, timeout=120, env=env)
             if push.returncode:
                 raise BootstrapError(EXIT_LAUNCH, "helper JAR push failed")
+        _run_adb(cfg, env, "logcat", "-c", timeout=20)
         launched = _run_adb(cfg, env, "shell", "monkey", "-p", PACKAGE, "1", timeout=30)
         if launched.returncode:
             raise BootstrapError(EXIT_LAUNCH, "game launch failed")

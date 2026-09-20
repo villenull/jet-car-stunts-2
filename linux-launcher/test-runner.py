@@ -714,26 +714,50 @@ class DisplayGuardTests(unittest.TestCase):
         self.assertEqual(env["ENABLE_GAMESCOPE_WSI"], "0")
         self.assertEqual(env["ADB_SERVER_PORT"], str(runner.ADB_PORT))
 
-    def test_gpu_mode_follows_the_session_and_honours_the_override(self):
-        """`-gpu host` needs a desktop GL context; gamescope kills it.
+    def test_gpu_mode_follows_the_render_node_and_honours_the_override(self):
+        """`-gpu host` needs a usable render node, not a queryable compositor.
 
-        In Gaming Mode the emulator's color buffers failed (gl error 0x502) and
-        the game exited seconds after launch, so the session decides the mode
-        and JCS2_GPU still wins.
+        The Hyprland probe answers whether the lane can measure the host window;
+        tying the renderer to it pushed every session without Hyprland (gamescope,
+        stock SteamOS desktops) onto software rendering even though the GPU was
+        there - measured 2026-09-20: software 22.5 fps menus / 29.07-29.59 fps
+        race versus 59.14 fps for host-GPU menus.
         """
         launcher = object.__new__(runner.Launcher)
         launcher.log = mock.Mock()
-        with mock.patch.object(runner, "hyprland_signature_candidates", return_value=["sig"]), \
-             mock.patch.dict(os.environ, {}, clear=False):
-            launcher.hyprctl_clients = mock.Mock(return_value=[])
+        with mock.patch.dict(os.environ, {}, clear=False):
             os.environ.pop("JCS2_GPU", None)
+            launcher.host_gpu_capable = mock.Mock(return_value=True)
             self.assertEqual(launcher.gpu_mode(), "host")
             os.environ["JCS2_GPU"] = "swiftshader_indirect"
             self.assertEqual(launcher.gpu_mode(), "swiftshader_indirect")
             del os.environ["JCS2_GPU"]
-            launcher.hyprctl_clients = mock.Mock(return_value=None)
-            launcher._desktop_compositor = None  # the session probe is cached
+            launcher.host_gpu_capable = mock.Mock(return_value=False)
             self.assertEqual(launcher.gpu_mode(), "swiftshader_indirect")
+
+    def test_render_node_probe_decides_and_reports_the_reason(self):
+        """A usable render node selects the host; no node means software.
+
+        Capability, not session: a machine with no usable /dev/dri/renderD* node
+        still logs why it fell back, so the lane log explains the renderer
+        without anyone having to infer it from frame rates.
+        """
+        launcher = object.__new__(runner.Launcher)
+        launcher.log = mock.Mock()
+        node = Path(tempfile.mkdtemp()) / "renderD128"
+        node.write_bytes(b"")
+        with mock.patch.object(runner, "DRM_DIR", node.parent), \
+             mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("JCS2_GPU", None)
+            self.assertTrue(launcher.host_gpu_capable())
+            self.assertEqual(launcher.gpu_mode_decision()["mode"], "host")
+            empty = Path(tempfile.mkdtemp())
+            launcher._host_gpu = None  # the probe is cached per session
+            with mock.patch.object(runner, "DRM_DIR", empty):
+                self.assertFalse(launcher.host_gpu_capable())
+                decision = launcher.gpu_mode_decision()
+            self.assertEqual(decision["mode"], "swiftshader_indirect")
+            self.assertIn("render node", decision["reason"])
 
     def test_no_desktop_compositor_never_provokes_a_guest_rotation(self):
         """Gaming Mode: gamescope owns the output, so the host is left alone.

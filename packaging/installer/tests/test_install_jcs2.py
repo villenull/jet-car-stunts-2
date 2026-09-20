@@ -456,12 +456,24 @@ class LockTests(unittest.TestCase):
     def test_every_fetched_component_pins_a_license_and_hashes(self):
         lock = installer.load_runtime_lock()
         fetched, _ = installer.select_components(lock, include_alternates=False)
-        self.assertEqual(len(fetched), 4)
+        # Pinned on purpose: a guest cannot boot without the android-28 platform,
+        # so a runtime that silently loses any of these must fail this test.
+        self.assertEqual([spec["id"] for spec in fetched],
+                         ["python", "platform-tools", "emulator", "system-image", "platform-28"])
         for spec in fetched:
             self.assertIn("license", spec)
             self.assertEqual(len(spec["sha256"]), 64)
             self.assertGreater(spec["size"], 0)
             self.assertTrue(spec["url"].startswith("https://"))
+
+    def test_runtime_carries_the_platform_the_emulator_validates(self):
+        lock = installer.load_runtime_lock()
+        platform = [c for c in lock["components"] if c["id"] == "platform-28"][0]
+        self.assertEqual(platform["dest"], "runtime/sdk/platforms/android-28")
+        self.assertIn("android.jar", platform["required_files"])
+        self.assertEqual(platform["top"], "android-9")  # API 28 is Android 9
+        self.assertEqual(platform["size"], 75565084)
+        self.assertEqual(len(platform["sha256"]), 64)
 
 
 if __name__ == "__main__":

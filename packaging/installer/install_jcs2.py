@@ -423,6 +423,24 @@ def tcp_open(port: int, host: str = "127.0.0.1", timeout: float = 0.5) -> bool:
         return False
 
 
+def adb_connect(adb: Path, adb_port: int, serial: str, timeout: float = 20) -> str:
+    """Make a host:port serial known to the adb server. Idempotent.
+
+    A bootstrap pass owns its own adb server and tears it down on the way out;
+    the next server starts empty, so the emulator that is already running would
+    otherwise look like a missing device. Connecting first is harmless when the
+    serial is already known ("already connected to ...").
+    """
+    if ":" not in serial:
+        return ""
+    try:
+        result = subprocess.run([str(adb), "-P", str(adb_port), "connect", serial],
+                                capture_output=True, text=True, timeout=timeout)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return f"connect failed: {error}"
+    return (result.stdout + result.stderr).strip() or "connected"
+
+
 def adb_state(adb: Path, adb_port: int, serial: str, timeout: float = 10) -> str:
     try:
         result = subprocess.run([str(adb), "-P", str(adb_port), "-s", serial, "get-state"],
@@ -1245,8 +1263,12 @@ def probe_lane(cfg: InstallerConfig) -> dict:
     adb = cfg.sdk / "platform-tools" / "adb"
     emulators = owned_processes(cfg.owned_markers, cfg.avd_name, "emulator")
     ports = {port: tcp_open(port) for port in (cfg.adb_port, cfg.console_port, cfg.console_port + 1)}
-    state = adb_state(adb, cfg.adb_port, cfg.serial) if adb.is_file() else "no-adb"
+    connect, state = "skipped", "no-adb"
+    if adb.is_file():
+        connect = adb_connect(adb, cfg.adb_port, cfg.serial)
+        state = adb_state(adb, cfg.adb_port, cfg.serial)
     return {
+        "adb_connect": connect,
         "adb_device": state,
         "emulator_pids": [pid for pid, _ in emulators],
         "lane_ports": {str(port): ("open" if is_open else "closed") for port, is_open in ports.items()},

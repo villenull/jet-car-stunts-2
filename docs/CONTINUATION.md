@@ -729,3 +729,93 @@ competing adb server on the lane's own port. Each has a regression test.
   consistent with §9.8 and is not a fix.
 - Steam registration itself is only covered offline (`steam-shortcut` suite, 28
   cases); Steam is not installed on this workstation.
+
+### 10.1 Fresh-install crash, the fix, and what is still unknown (2026-09-20)
+
+A fresh-install rehearsal on this workstation produced a guest whose app died at
+launch. Observed, not inferred: `java.lang.UnsatisfiedLinkError …
+libtrueaxis.so … has bad ELF magic` at `NativeActivity.onCreate`; the installed
+APK is hash-intact (`211c445e…6f92`, identical to the verified backup) and its
+single native library is `lib/armeabi-v7a/libtrueaxis.so`, which the
+`google/sdk_gphone_x86_arm` image is supposed to translate. **The bytes of the
+guest's extracted library were never captured**, so the file's actual content is
+unknown and no cause is established. A second, separate failure in the same
+session aborted `/system/bin/surfaceflinger` (SIGABRT, HWC `DEAD_OBJECT`) in a
+different stack configuration; the two must not be conflated, and neither is a
+GPU verdict.
+
+Leading candidate from source sequence alone (not proven): `OwnedChildren`
+signalled owned process groups with SIGKILL immediately, and the bootstrap's
+failure path called `kill_all()` after the install markers were written — so a
+guest could be killed while its first-launch library extraction was in flight.
+Committed fix `b8c3c48`: graceful SIGTERM → bounded wait → SIGKILL, the
+completion marker moved to after the helper push and game launch, and a
+native-library tripwire that asks the guest for its own `nativeLibraryDir` and
+compares guest-side hashes with the shipped APK's `lib/<abi>/*.so` before the
+install may be called complete (detector only — it refuses to bless a guest, it
+does not repair one). Deterministic lifecycle proof without an emulator: three
+tests assert the signal a real child dies from (SIGTERM for a well-behaved
+child, SIGKILL for one that announced it ignores SIGTERM, and the same for
+`kill_all()`).
+
+**Unknowns that must stay unknown until a guest run happens again** (guest runs
+are paused by instruction): whether the graceful stop actually removes the
+corruption; whether the tripwire fires on a healthy first install or is too
+strict; whether the extracted library was ever wrong at all rather than a
+transient; and whether the surfaceflinger abort is independent of everything
+here. The `installer-paused-20260920` release is marked **⛔ INVALIDATED** and
+its notes say exactly this; it is a reproduction artifact, not an installer.
+
+### 10.2 Running without any Omarchy host files (source audit)
+
+The user's target is a stock SteamOS Desktop Mode machine, which has none of the
+Desktop-Mode helpers this project's own Deck has. Source audit of the shipped
+tree:
+
+- `deck-lizard-mode`, `deck-input-mapper`, `sudo`, `systemctl` and `/usr/local`
+  appear **only** in `linux-launcher/deck_pad.py` (and its unit test and docs);
+  `packaging/`, `steam/` and `linux-launcher/runner.py` do not reference them.
+  The installer therefore cannot depend on them by construction.
+- `runner.py` calls `claim_pad()` and catches `DeckPadError`, `OSError` and
+  `subprocess.SubprocessError`, logging `stage=deck-pad-claim-skipped` with the
+  reason and launching anyway.
+- A barren-environment dry run with **empty `HOME`, `PATH=/usr/bin:/bin`, no
+  `DISPLAY`** (with the explicit `JCS2_ALLOW_NO_DISPLAY=1` override) exited 0
+  after verifying its payload: the only host tools it used were `python3`,
+  `zstd`, `tar`, `sha256sum`, `awk`, `sed`, `grep`. Nothing privileged, nothing
+  Omarchy. **Required** host facts are just: `python3 ≥ 3.9`, those coreutils,
+  a live X `DISPLAY` for the emulator, writable `/dev/kvm`, ~8 GiB free in
+  `$HOME`.
+- **Audit finding, reported not papered over:** on this workstation — which has
+  no mapper unit and no lizard-mode tool, verified with `ls`/`systemctl` — the
+  lane logged `stage=deck-pad-claimed` with `mapper_active_before: false`,
+  `mapper_stopped: false`, `lizard_forced: ""`. That is a *log that claims pad
+  ownership it never took*. On a machine where nothing holds the pad it is
+  harmless, but if some other owner (for example Steam Input in Desktop Mode)
+  did hold it, the same row would appear and the dead pad would be masked. This
+  lives in `deck_pad.py`/`runner.py`, which are outside this workstream's
+  ownership, so it is recorded here and handed to the renderer/input owner
+  rather than edited here.
+- What remains genuinely unverified on the target: the Gaming Mode input path
+  itself. In Gaming Mode the Deck's pad is delivered through Steam's virtual
+  input devices and the lane reads `/dev/input/js*`; `steam/README.md` states
+  that Gaming Mode controller behaviour still needs physical verification, and
+  nothing in this session changes that. No rootless claim is made for the
+  Desktop-Mode hand-off — it is an optional extra that degrades to a logged skip
+  when its two host pieces are absent, and that degradation is what the row
+  above actually shows.
+
+### 10.3 Task status (honest, no invented completion)
+
+| # | Task | State |
+|---|---|---|
+| R1 | Recovery release + remote verification | done and independently verified |
+| 1 | Double-click install on stock SteamOS | **candidate only** — never executed on SteamOS; published build ⛔ INVALIDATED by the first-install crash |
+| 2 | Latest payload + runtime embedded | done and checksum-verified |
+| 3 | GPU-fix integration | **blocked / not done** — no fix landed, gate unrun, not waived |
+| 4 | Auto Steam shortcut + artwork | implemented; 28 offline fixture cases pass; unverified against a running Steam |
+| 5 | Fresh-destination rehearsal | done (exit 0) but its guest then crashed at launch → superseded by §10.1 |
+| 6 | Publish + download-verify the installer | done, then ⛔ invalidated after the crash |
+
+Nothing here is relabelled complete: the one artifact that would let a user
+install today is published with a banner telling them not to.

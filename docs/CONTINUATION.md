@@ -758,6 +758,21 @@ tests assert the signal a real child dies from (SIGTERM for a well-behaved
 child, SIGKILL for one that announced it ignores SIGTERM, and the same for
 `kill_all()`).
 
+**The `guest has []` result is a real signal, settled read-only** (input owner,
+from the bytes, no guest needed): the monolith's single entry
+`lib/armeabi-v7a/libtrueaxis.so` is stored **Defl:N** (2 227 488 B for 1 065 790
+deflated), and `android:extractNativeLibs` is not declared, so the platform
+**must** extract that library at install time — there is no "legitimately empty
+native-library directory" case for this app. Expected extracted content
+`sha256 cb2bd45b85cd6bf161199e57c460870d295b73d4ad2101bb7d97d0d413f0ffb1`
+(monolith; pristine `bc7fdf9d…a34d`), and the earlier crash path
+`/data/app/com.trueaxis.jetcarstunts2-…/lib/arm/libtrueaxis.so` shows the
+directory is `lib/arm`. So an empty directory means the library was **never
+extracted**: the tripwire is not too strict, and the fresh install genuinely
+failed to commit the library. What that run's resolved path was is still open —
+the re-run that would have printed it produced no output and nothing is running
+— so the record keeps both facts separate.
+
 **The open evidence gap, named:** the one test that would move this from
 candidate cause to cause is hashing the guest's *extracted* library and
 comparing it with the copy inside the APK. That comparison was never made — the

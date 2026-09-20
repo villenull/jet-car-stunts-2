@@ -4,6 +4,7 @@ import io
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 import tempfile
 import unittest
@@ -375,6 +376,62 @@ class DryRunTests(unittest.TestCase):
             self.assertIn('install-multiple', out.getvalue())
             self.assertEqual(before, snapshot(Path(tmp)),
                              'dry-run must leave the tree byte-identical')
+
+
+class OwnedChildShutdownTests(unittest.TestCase):
+    """The owned-process stop must be graceful before it is forceful.
+
+    The post-install failure path used to SIGKILL the emulator immediately,
+    which is what a fresh guest's corrupt extracted native library was
+    suspected to come from on 2026-09-20. These run real children and need no
+    emulator; the signal a child dies from is the observable contract.
+    """
+
+    def _spawn(self, argv):
+        owned = bootstrap.OwnedChildren()
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        proc = owned.spawn('emulator', argv, Path(tmp.name) / 'child.log', os.environ.copy())
+        return owned, proc
+
+    def test_stop_terminates_politely_before_escalating(self):
+        import signal as _signal
+        owned, proc = self._spawn(['sleep', '300'])
+        owned.stop('emulator', timeout=10)
+        self.assertEqual(proc.wait(timeout=10), -_signal.SIGTERM,
+                         'a child that honours TERM must be allowed to flush, not SIGKILLed')
+
+    def test_stop_escalates_when_a_child_ignores_sigterm(self):
+        import signal as _signal
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        ready = Path(tmp.name) / 'ready'
+        # The child must have installed the handler before the signal arrives,
+        # otherwise the default action kills it and the test proves nothing.
+        deaf = [sys.executable, '-c',
+                'import signal, sys, time, pathlib; '
+                'signal.signal(signal.SIGTERM, signal.SIG_IGN); '
+                'pathlib.Path(sys.argv[1]).write_text("up"); time.sleep(300)', str(ready)]
+        owned, proc = self._spawn(deaf)
+        deadline = time.monotonic() + 10
+        while not ready.exists() and time.monotonic() < deadline:
+            time.sleep(0.05)
+        self.assertTrue(ready.exists(), 'child never announced that it ignores SIGTERM')
+        owned.stop('emulator', timeout=2)
+        self.assertEqual(proc.wait(timeout=20), -_signal.SIGKILL,
+                         'a deaf child must still be killed once the deadline passes')
+
+    def test_kill_all_stops_every_owned_group_gracefully(self):
+        import signal as _signal
+        owned = bootstrap.OwnedChildren()
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        procs = [owned.spawn(name, ['sleep', '300'], Path(tmp.name) / f'{name}.log',
+                             os.environ.copy())
+                 for name in ('emulator', 'adb-server')]
+        owned.kill_all(timeout=10)
+        for proc in procs:
+            self.assertEqual(proc.wait(timeout=10), -_signal.SIGTERM)
 
 
 if __name__ == '__main__':

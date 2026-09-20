@@ -246,7 +246,11 @@ def avd_config_text(image_abs: Path, avd_name: str) -> str:
         "fastboot.forceFastBoot = no\n"
         "hw.accelerometer = yes\n"
         "hw.audioInput = no\n"
-        "hw.audioOutput = no\n"
+        # The proven guest has audio output enabled and the lane warns (and
+        # loses sound) without it; audio input stays off because nothing needs
+        # the microphone. Found by comparing this template against the working
+        # guest on 2026-09-20.
+        "hw.audioOutput = yes\n"
         "hw.camera.back = none\n"
         "hw.camera.front = none\n"
         "hw.cpu.arch = x86\n"
@@ -629,21 +633,43 @@ class OwnedChildren:
         self._pgids.append((name, proc.pid))
         return proc
 
-    def kill_all(self) -> None:
+    def kill_all(self, timeout: float = 20.0) -> None:
         for _, pgid in reversed(self._pgids):
-            try:
-                os.killpg(pgid, signal.SIGKILL)
-            except (OSError, ProcessLookupError):
-                pass
+            self._stop_pgid(pgid, timeout)
 
-    def stop(self, name: str) -> None:
-        """Stop one owned child by name (SIGKILL its pgid), keep the rest."""
+    def stop(self, name: str, timeout: float = 20.0) -> None:
+        """Stop one owned child by name, keep the rest."""
         for child, pgid in self._pgids:
             if child == name:
-                try:
-                    os.killpg(pgid, signal.SIGKILL)
-                except (OSError, ProcessLookupError):
-                    pass
+                self._stop_pgid(pgid, timeout)
+
+    @staticmethod
+    def _stop_pgid(pgid: int, timeout: float) -> None:
+        """Terminate a process group gracefully, then forcefully.
+
+        This used to go straight to SIGKILL. An emulator killed that way can
+        leave guest writes unflushed, which is what a fresh guest showed on
+        2026-09-20 (an extracted native library that came back with 'bad ELF
+        magic' after the post-install failure path SIGKILLed it). SIGTERM plus
+        a bounded wait first, SIGKILL only if the group outlives the deadline;
+        ownership and port cleanup are unchanged because the whole group is
+        still signalled.
+        """
+        try:
+            os.killpg(pgid, signal.SIGTERM)
+        except (OSError, ProcessLookupError):
+            return
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            try:
+                os.killpg(pgid, 0)
+            except (OSError, ProcessLookupError):
+                return
+            time.sleep(0.2)
+        try:
+            os.killpg(pgid, signal.SIGKILL)
+        except (OSError, ProcessLookupError):
+            pass
 
 def _base_env(cfg: BootstrapConfig) -> dict[str, str]:
     env = os.environ.copy()
@@ -779,6 +805,74 @@ def _wait_for_device_state(cfg: BootstrapConfig, env: dict[str, str],
     raise BootstrapError(code, f"{label} ADB reconnect timeout")
 
 
+def _apk_native_libs(split_paths) -> dict:
+    """Basename -> sha256 for every lib/<abi>/*.so inside the shipped APK(s)."""
+    import zipfile
+    libs: dict = {}
+    for path in split_paths:
+        try:
+            with zipfile.ZipFile(path) as archive:
+                for member in archive.namelist():
+                    parts = member.split("/")
+                    if len(parts) == 3 and parts[0] == "lib" and member.endswith(".so"):
+                        libs[Path(member).name] = hashlib.sha256(archive.read(member)).hexdigest()
+        except (OSError, zipfile.BadZipFile):
+            continue
+    return libs
+
+
+def _guest_native_lib_dir(cfg: BootstrapConfig, env) -> str:
+    """Ask the guest where it keeps extracted native libraries.
+
+    Deliberately not derived from `pm path` by string surgery: the extracted
+    library directory is a different path and the guest reports it itself.
+    """
+    dump = _run_adb(cfg, env, "shell", "dumpsys", "package", PACKAGE, timeout=30)
+    if dump.returncode:
+        return ""
+    for line in dump.stdout.splitlines():
+        for key in ("legacyNativeLibraryDir=", "nativeLibraryDir="):
+            if key in line:
+                value = line.split(key, 1)[1].strip().split()[0]
+                if value and value not in ("null", "[]"):
+                    return value
+    return ""
+
+
+def verify_guest_native_libs(cfg: BootstrapConfig, env, timeout: float = 90.0) -> None:
+    """Tripwire: the guest's extracted native libraries must match the APK.
+
+    Detector only - it cannot repair a guest, it refuses to call one complete.
+    Raises 10 (EXIT_INSTALL) when the guest never converges to the shipped
+    bytes, so this class of breakage fails the install loudly instead of
+    surfacing later as a lane 'game resumed activity timeout'.
+    """
+    if not cfg.split_paths:
+        return
+    expected = _apk_native_libs(cfg.split_paths)
+    if not expected:
+        print("warning: shipped APK exposes no native libraries to verify", flush=True)
+        return
+    deadline = time.monotonic() + timeout
+    found: dict = {}
+    while time.monotonic() < deadline:
+        directory = _guest_native_lib_dir(cfg, env)
+        if directory:
+            listing = _run_adb(cfg, env, "shell", "sha256sum", f"{directory}/*.so", timeout=30)
+            found = {}
+            for line in listing.stdout.splitlines():
+                parts = line.split()
+                if len(parts) == 2:
+                    found[Path(parts[1]).name] = parts[0]
+            if all(found.get(name) == digest for name, digest in expected.items()):
+                return
+        time.sleep(3)
+    raise BootstrapError(
+        EXIT_INSTALL,
+        "guest native libraries do not match the shipped APK; refusing to call this "
+        f"install complete (expected {sorted(expected)}, guest has {sorted(found)})")
+
+
 def execute_bootstrap(cfg: BootstrapConfig) -> int:
     if not cfg.accept_licenses:
         raise BootstrapError(EXIT_CONFIG, "refusing without --accept-licenses")
@@ -907,13 +1001,6 @@ def execute_bootstrap(cfg: BootstrapConfig) -> int:
                 raise BootstrapError(EXIT_INSTALL_MARKER,
                                      f"install-state write failed: {exc}") from exc
 
-        if not complete:
-            try:
-                (cfg.avd_home / BOOTSTRAP_STATE).write_text(cfg.identity, encoding="utf-8")
-            except OSError as exc:
-                raise BootstrapError(EXIT_BOOTSTRAP_MARKER,
-                                     f"bootstrap completion write failed: {exc}") from exc
-
         # Helper JAR push, then launch (helper.go remote path; monkey like runner).
         if cfg.helper_jar is not None:
             push = subprocess.run(
@@ -925,6 +1012,21 @@ def execute_bootstrap(cfg: BootstrapConfig) -> int:
         launched = _run_adb(cfg, env, "shell", "monkey", "-p", PACKAGE, "1", timeout=30)
         if launched.returncode:
             raise BootstrapError(EXIT_LAUNCH, "game launch failed")
+
+        # The first launch is also when the guest extracts the APK's native
+        # libraries. Verify them before this install may be called complete:
+        # the marker used to be written before the launch, so a later failure
+        # (or an abrupt stop) could leave a guest that was "complete" on paper
+        # with a half-written library, which is what a fresh guest showed on
+        # 2026-09-20 ("bad ELF magic" on libtrueaxis.so).
+        verify_guest_native_libs(cfg, env)
+
+        if not complete:
+            try:
+                (cfg.avd_home / BOOTSTRAP_STATE).write_text(cfg.identity, encoding="utf-8")
+            except OSError as exc:
+                raise BootstrapError(EXIT_BOOTSTRAP_MARKER,
+                                     f"bootstrap completion write failed: {exc}")
 
         print(f"JCS2 bootstrapped on {cfg.serial} with owned ADB port {cfg.adb_port}",
               flush=True)

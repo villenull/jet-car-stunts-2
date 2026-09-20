@@ -469,7 +469,15 @@ def owned_processes(markers, avd_name: str, pattern: str, proc_root: str = "/pro
             if not any(name == "emulator" or name.startswith("qemu-system-") for name in names):
                 continue
         elif pattern == "adb-server":
-            if "server" not in argv or "nodaemon" not in argv:
+            # Two shapes are ours: the bootstrap's own `adb -P <port> nodaemon
+            # server`, and the daemon that `adb connect` starts, which is
+            # `adb -L tcp:<port> fork-server server`. Matching only the first
+            # left the second holding cfg.adb_port through the guest handover
+            # ("port 5038 still busy after guest handover").
+            joined = " ".join(argv)
+            if "server" not in joined:
+                continue
+            if "nodaemon" not in joined and "fork-server" not in joined:
                 continue
             if not any(Path(part).name == "adb" for part in argv):
                 continue

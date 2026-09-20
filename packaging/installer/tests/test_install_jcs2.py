@@ -396,6 +396,10 @@ class LaneTests(unittest.TestCase):
                       "-avd", "jcs2-fresh", "-port", "5594"],
                 106: [str(other / "runtime/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64"),
                       "-avd", "jcs2-fresh"],
+                # The daemon `adb connect` starts: same install, same port, but
+                # the fork-server shape rather than nodaemon.
+                107: [str(root / "runtime/sdk/platform-tools/adb"), "-L", "tcp:5038",
+                      "fork-server", "server", "--reply-fd", "4"],
             }
             for pid, argv in entries.items():
                 directory = proc / str(pid)
@@ -406,7 +410,7 @@ class LaneTests(unittest.TestCase):
             # /proc order is not defined; compare as a set of pids.
             self.assertEqual(sorted(pid for pid, _ in found), [101, 105])
             servers = installer.owned_processes([root], "jcs2-fresh", "adb-server", proc_root=str(proc))
-            self.assertEqual([pid for pid, _ in servers], [103])
+            self.assertEqual(sorted(pid for pid, _ in servers), [103, 107])
             self.assertEqual(sorted(pid for pid, _ in installer.owned_processes(
                 [other], "jcs2-fresh", "emulator", proc_root=str(proc))), [102, 106])
 

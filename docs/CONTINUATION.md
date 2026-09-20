@@ -564,6 +564,24 @@ earlier dirty-tree one, is the reference for this paused state.
   `DmaMap`/`ColorBuffer 0x502 → bad color buffer handle`, cause unknown, so the
   GPU path stays **not established either way** rather than slow by nature.
   Do not present the lane as GPU-correct.
+- **The gate that would settle it has not been run**, and the task is parked and
+  blocked by the user, not waived. It needs an isolated owned gamescope/Gaming
+  Mode session (no competing gamescope or Xwayland), the lane started through
+  `steam/jcs2-steam-launch.sh` (ideally via the real Steam UI Play) with that
+  session's own `DISPLAY`, running `-gpu host`, showing all five of: a race
+  entered with the game alive ≥ 3 minutes; no `DmaMap`/`bad color buffer handle`
+  escalation beyond the software lane's benign baseline of exactly 2 lines;
+  PID-only in-race `eglSwapBuffers` near the game's own 60 fps setting with
+  SurfaceFlinger counted separately; upright paired host+guest captures during
+  the race; and one clean user-facing stop plus a second start with no
+  fresh-boot regression. Supporting artifacts: software floor
+  `menu1.txt`/`raceA.txt`/`raceB.txt`/`race20.txt`; the direct-run
+  `v1-atrace.txt` above; lane-launched Gaming Mode host failures
+  `logs/run-20260919T205227Z` and `logs/run-20260919T203340Z`; a lane-launched
+  Desktop host lane healthy >90 s with no race measurement
+  (`run-20260920T203323Z`). All under the backup and
+  `/home/villenull/jcs2-gm-evidence/gpufix-20260920/` (ANALYSIS.md carries the
+  PARKED/BLOCKED status).
 - **X display is a hard requirement of the pinned emulator.** Its bundled Qt
   ships only the `xcb` platform plugin: with no `DISPLAY` it dies with
   `no Qt platform plugin could be initialized. Available platform plugins are:
@@ -618,3 +636,96 @@ rebuild, and neither is unrecovered progress. This verdict is about
 
 Read this table rather than any one-line summary. Re-read the top of §9.4 for
 the exact evidence behind every "Yes".
+
+## 10. The one-file installer — CANDIDATE (2026-09-20)
+
+**This is a candidate build, not a validated release.** It has never run on a
+SteamOS device, and the Gaming Mode hardware-acceleration task is **parked and
+blocked**, so this build contains **no FPS fix and no GPU acceleration** — no
+installer text, release note or wrapper line claims otherwise. The
+`installer-*` task in the tracking list stays **blocked/open**, not done: the
+user asked for the fix to be included, and deferring its validation does not
+waive it.
+
+**Where:** private release `installer-paused-20260920`, titled
+"JCS2 Steam Deck installer — CANDIDATE 2026-09-20 (PRIVATE, not validated on
+SteamOS)" —
+<https://github.com/villenull/jet-car-stunts-2/releases/tag/installer-paused-20260920>
+— asset `JCS2-SteamDeck-Install.run`, **1 605 472 072 bytes**,
+`sha256 c9351f9a07b49dfae74cb307a7317177c348f9805a8f53adfe59f9a7df51614a`,
+built from commit `3a0070f1960c39c80722cf7e3a865af2a2c73fbc`. Plus
+`JCS2-SteamDeck-Install.desktop` (optional launcher for it) and
+`JCS2-SteamDeck-Install.run.sha256`. One file, self-contained: pinned source
+tree, the five pinned runtime archives (§9.5), the signed full-fixes APK, the
+controller binary, the helper JAR, the mapping and the artwork. Verified after
+upload by downloading it back: the published checksum matches the asset and the
+embedded manifest re-verifies (136 members, pinned commit inside).
+
+**How it is meant to be used** (no terminal, no typed commands):
+
+1. Download both files from that release page in a browser while signed in —
+   the repo is private, so the assets are too; the *installer* never
+   authenticates and carries no token.
+2. Set the executable bit: right-click the `.run` → **Properties** →
+   **Permissions** → tick **Is executable**. This step is unavoidable for any
+   downloaded program on KDE/SteamOS and is stated plainly rather than hidden.
+3. Double-click it and choose **Run** when the desktop asks. Progress is shown
+   in a window (a tkinter progress bar driven by the installer's own stage rows,
+   with Cancel, when python3 has tkinter; otherwise a zenity progress window; a
+   kdialog popup plus log if that is all the session has; plain output as the
+   last resort). Errors surface in that window with the log path.
+
+**What it does:** extracts to `~/.cache/jcs2-installer/`, verifies every bundled
+file against its embedded `BUNDLE.sha256`, the APK against a pinned SHA-256, and
+each runtime archive against `runtime-lock.json` before use; installs into
+`~/Projects/JCS2`; claims the fresh `jcs2-fresh` guest; installs the game, pushes
+the helper; runs one verification lane pass; if Steam is running it *asks*
+before a clean shutdown, then adds the non-Steam shortcut and artwork for the
+account it finds (no manual "Add a Non-Steam Game"). It refuses to start without
+a `DISPLAY` because the pinned emulator's Qt is xcb-only (§9.8). **It never
+touches game progress**: an existing owned guest is kept, a foreign or booted
+guest is refused, and restoring old saves is the separate `recovery-paused-20260920`
+release. Re-running it is safe: verified trees are kept and an existing runtime
+tree is moved aside, never deleted.
+
+**Fresh-destination rehearsal, 2026-09-20** (isolated root
+`/home/villenull/jcs2-recovery-20260920/rehearsal-install`, real payload, no
+Deck contact; log `logs/rehearsal-install.log`):
+
+- the `.run` extracted itself and verified 135 bundled files, then the pinned
+  APK;
+- `runtime/python`, `platform-tools`, `emulator`, `system-image` **and**
+  `platforms/android-28` were extracted and checksum-verified;
+- the guest booted, was isolated, the game was installed and launched
+  (`stage=guest status=bootstrapped`), and `pm path
+  com.trueaxis.jetcarstunts2` answered inside the guest;
+- the post-bootstrap check passed (`stage=smoke status=ok`), the bootstrap guest
+  was handed over, and the lane came up and was stopped cleanly
+  (`stage=smoke/lane status=ok action=lane available after 120s budget`);
+- `finalize` wrote `install-state.json {"status":"complete"}`,
+  `state/runtime-manifest.json` and `.md5`; process exit **0**.
+
+Four real defects were found *by* that rehearsal and fixed in this repo before
+the release: the missing `platforms/android-28` tree (§9.5 row 6a — no guest
+could boot), the emulator matcher missing the live `qemu-system-*` process, the
+adb daemon owning port 5038 through the handover, and the lane poll starting a
+competing adb server on the lane's own port. Each has a regression test.
+
+**What this does NOT prove — do not upgrade these claims:**
+
+- It has **not run on a physical SteamOS device**. The KDE trust prompt, the
+  Steam shortcut/artwork pick-up and Desktop/Gaming Mode integration are
+  unverified on the target OS; that run is the acceptance test.
+- No screenshot of the game rendering was obtained here. One lane pass reached
+  `stage=running` + `stage=gamescope-window-ready`, and the guest was captured,
+  but the saved frame shows the Android **home screen**, not gameplay: on this
+  workstation the joystick lane dies when the game starts because there is no
+  gamepad (`joystick bridge exited while game was running`). Screen-level proof
+  of gameplay therefore still has to come from the Deck.
+- The host-GPU path on this workstation reproduced the Deck's *lane-launched*
+  failure signature: the lane chose `-gpu host` and the game never resumed
+  (`error: game resumed activity timeout`) until it was forced to
+  `swiftshader_indirect`, which then reached `stage=running`. That is
+  consistent with §9.8 and is not a fix.
+- Steam registration itself is only covered offline (`steam-shortcut` suite, 28
+  cases); Steam is not installed on this workstation.

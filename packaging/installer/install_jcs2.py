@@ -461,7 +461,12 @@ def owned_processes(markers, avd_name: str, pattern: str, proc_root: str = "/pro
         if pattern == "emulator":
             if "-avd" not in argv or avd_name not in argv:
                 continue
-            if not any(Path(part).name == "emulator" for part in argv):
+            # The `emulator` launcher execs the qemu binary, so the live process
+            # is normally qemu-system-x86_64. Requiring only the launcher's name
+            # matched nothing, which silently disabled the bootstrap-to-lane
+            # port handover in the rehearsal.
+            names = [Path(part).name for part in argv]
+            if not any(name == "emulator" or name.startswith("qemu-system-") for name in names):
                 continue
         elif pattern == "adb-server":
             if "server" not in argv or "nodaemon" not in argv:
@@ -1262,11 +1267,13 @@ def stage_guest(cfg: InstallerConfig, report: Report) -> None:
 def probe_lane(cfg: InstallerConfig) -> dict:
     adb = cfg.sdk / "platform-tools" / "adb"
     emulators = owned_processes(cfg.owned_markers, cfg.avd_name, "emulator")
-    ports = {port: tcp_open(port) for port in (cfg.adb_port, cfg.console_port, cfg.console_port + 1)}
+    # Connect first: bringing up the adb server is what opens cfg.adb_port, so
+    # probing the ports before this reported 5038 closed on a healthy guest.
     connect, state = "skipped", "no-adb"
     if adb.is_file():
         connect = adb_connect(adb, cfg.adb_port, cfg.serial)
         state = adb_state(adb, cfg.adb_port, cfg.serial)
+    ports = {port: tcp_open(port) for port in (cfg.adb_port, cfg.console_port, cfg.console_port + 1)}
     return {
         "adb_connect": connect,
         "adb_device": state,

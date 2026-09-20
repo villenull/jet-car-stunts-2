@@ -550,12 +550,20 @@ earlier dirty-tree one, is the reference for this paused state.
   `FRAMERATE: 60fps` setting, so the cadence tracks load rather than a cap
   (`/home/villenull/jcs2-gm-evidence/EVIDENCE-NOTES.md`) — and the hardware-GPU
   path (`-gpu host`) still logs `ColorBuffer` errors (331 lines across the
-  backed-up `logs/run-*/emulator.log`), unresolved. The Deck operator also
-  recorded a **direct** host-GPU run at 59.14 fps while the *lane-launched*
-  host-GPU attempt failed for a reason still unexplained; that number is their
-  session record and is not corroborated by any artifact reachable from this
-  workstation, so treat the GPU path as **not established either way** rather
-  than slow by nature. Do not present the lane as GPU-correct.
+  backed-up `logs/run-*/emulator.log`), unresolved.
+- The one accelerated datapoint is **checkable arithmetic on a preserved
+  capture**, not a memory: `jcs2-gm-evidence/gpufix-20260920/v1-direct-host-run/
+  v1-atrace.txt` holds an `atrace gfx` capture whose `eglSwapBuffers` count is
+  592 across three pids — game pid 3979: 295 swaps over 4.971 s = **59.14 fps**,
+  SurfaceFlinger pid 1693 the same 295/4.971 s (1:1), a third pid 2. Quote it
+  **only** with its conditions: a *direct* emulator invocation (not through the
+  runner/lane), `-gpu host`, the pinned 32.1.15 build 10696886, a Gaming Mode
+  session with `DISPLAY=:1`, `ENABLE_GAMESCOPE_WSI=0`, `WAYLAND_DISPLAY=gamescope-0`,
+  game at its **main menu** — a menu cadence, not race, and no proof the lane's
+  host path works. The lane-launched Gaming Mode host lanes still die with
+  `DmaMap`/`ColorBuffer 0x502 → bad color buffer handle`, cause unknown, so the
+  GPU path stays **not established either way** rather than slow by nature.
+  Do not present the lane as GPU-correct.
 - **X display is a hard requirement of the pinned emulator.** Its bundled Qt
   ships only the `xcb` platform plugin: with no `DISPLAY` it dies with
   `no Qt platform plugin could be initialized. Available platform plugins are:

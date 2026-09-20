@@ -390,6 +390,12 @@ class LaneTests(unittest.TestCase):
                 102: [str(other / "runtime/sdk/emulator/emulator"), "-avd", "jcs2-fresh"],
                 103: [str(root / "runtime/sdk/platform-tools/adb"), "-P", "5038", "nodaemon", "server"],
                 104: ["/usr/bin/emulator", "-avd", "jcs2-fresh"],
+                # The launcher execs qemu, so the live guest is this binary. It
+                # used to be missed, which silently skipped the port handover.
+                105: [str(root / "runtime/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64"),
+                      "-avd", "jcs2-fresh", "-port", "5594"],
+                106: [str(other / "runtime/sdk/emulator/qemu/linux-x86_64/qemu-system-x86_64"),
+                      "-avd", "jcs2-fresh"],
             }
             for pid, argv in entries.items():
                 directory = proc / str(pid)
@@ -397,7 +403,7 @@ class LaneTests(unittest.TestCase):
                 (directory / "cmdline").write_bytes(b"\x00".join(part.encode() for part in argv) + b"\x00")
             (proc / "self").mkdir()
             found = installer.owned_processes([root], "jcs2-fresh", "emulator", proc_root=str(proc))
-            self.assertEqual([pid for pid, _ in found], [101])
+            self.assertEqual([pid for pid, _ in found], [101, 105])
             servers = installer.owned_processes([root], "jcs2-fresh", "adb-server", proc_root=str(proc))
             self.assertEqual([pid for pid, _ in servers], [103])
             self.assertEqual(installer.owned_processes([other], "jcs2-fresh", "emulator", proc_root=str(proc))[0][0], 102)

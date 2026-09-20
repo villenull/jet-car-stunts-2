@@ -115,7 +115,7 @@ sockets; no emulator/ADB/X11/motion/Steam/session). On a fresh clone:
   `analysis/...` paths only as expected default strings, not as live inputs).
 - Local-only fixtures staying on the owner's machine (needed for live and
   packaging work, NOT for offline tests): authorized game APK split set
-  (off-Deck backup `~/jcs2-work-20260920/deck-backup-20260920/`, `~/Downloads/com.trueaxis.jetcarstunts2.apk`), preserved
+  (off-Deck backup `~/Projects/jet-car-stunts-2/.state/jcs2-work-20260920/deck-backup-20260920/`, `~/Downloads/com.trueaxis.jetcarstunts2.apk`), preserved
   `hardened_api28` guest + Linux SDK/system-image trees (under `analysis/`),
   `runtime/ui-python`, portable `runtime/sdk` + `state/avd` layout (prepared
   later per `packaging/README.md`), Steam grid backups, private `.ab` payloads.

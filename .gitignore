@@ -159,3 +159,6 @@ artwork/steam-proposal/revised-20260915/logo-generated-REJECTED-v2-baked-2172x72
 *privateDB86*
 **/owneronly/
 **/private-*/
+
+# Recovery container (huge; never tracked)
+/.state/

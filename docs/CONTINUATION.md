@@ -320,9 +320,9 @@ controller binary `linux-launcher/jcs2-controller-linux` and
 
 ### 9.4 Durable off-Deck backup (owner: the Deck operator, not this repo)
 
-- Location: `/home/villenull/jcs2-work-20260920/deck-backup-20260920/` on this workstation —
+- Location: `/home/villenull/Projects/jet-car-stunts-2/.state/jcs2-work-20260920/deck-backup-20260920/` on this workstation —
   outside the repo, not `/tmp`. Written and owned by the Deck operator, whose
-  written mapping is `/home/villenull/jcs2-work-20260920/deck-backup-20260920/RESTORE-MAPPING.md`.
+  written mapping is `/home/villenull/Projects/jet-car-stunts-2/.state/jcs2-work-20260920/deck-backup-20260920/RESTORE-MAPPING.md`.
 - **Status 2026-09-20: complete and checksum-verified.** A first pass was
   interrupted when the Deck left the network (part of `avd/` only); a resume
   pass finished it, and a second pass then added the host/build items found
@@ -475,7 +475,7 @@ installer itself (`--allow-network`), so they are not a backup requirement.
 
 ### 9.7 Rehearsal evidence (2026-09-20, isolated, no Deck contact)
 
-Evidence dir `/home/villenull/jcs2-work-20260920/` (durable, outside the
+Evidence dir `/home/villenull/Projects/jet-car-stunts-2/.state/jcs2-work-20260920/` (durable, outside the
 repo): `logs/installer-rehearsal.log`, `rehearse.sh`, `archives/`. Nothing under
 `/home/deck` was contacted and no live guest was reset; the whole run happened
 inside the evidence dir.
@@ -689,7 +689,7 @@ release. Re-running it is safe: verified trees are kept and an existing runtime
 tree is moved aside, never deleted.
 
 **Fresh-destination rehearsal, 2026-09-20** (isolated root
-`/home/villenull/jcs2-work-20260920/rehearsal-install`, real payload, no
+`/home/villenull/Projects/jet-car-stunts-2/.state/jcs2-work-20260920/rehearsal-install`, real payload, no
 Deck contact; log `logs/rehearsal-install.log`):
 
 - the `.run` extracted itself and verified 135 bundled files, then the pinned

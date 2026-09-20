@@ -860,7 +860,13 @@ def verify_guest_native_libs(cfg: BootstrapConfig, env, timeout: float = 90.0) -
         directory = _guest_native_lib_dir(cfg, env)
         resolved = directory or resolved
         if directory:
-            listing = _run_adb(cfg, env, "shell", "sha256sum", f"{directory}/*.so", timeout=30)
+            # The platform reports the parent `lib` directory and puts the
+            # architecture libraries one level below it (`lib/arm/`,
+            # `lib/armeabi-v7a/`), so a non-recursive `lib/*.so` glob found
+            # nothing on a guest whose library was present - the check has to
+            # look in the ABI subdirectories too.
+            listing = _run_adb(cfg, env, "shell", "sha256sum",
+                               f"{directory}/*/*.so", f"{directory}/*.so", timeout=30)
             found = {}
             for line in listing.stdout.splitlines():
                 parts = line.split()

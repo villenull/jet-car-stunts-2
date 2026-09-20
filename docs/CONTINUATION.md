@@ -758,6 +758,12 @@ tests assert the signal a real child dies from (SIGTERM for a well-behaved
 child, SIGKILL for one that announced it ignores SIGTERM, and the same for
 `kill_all()`).
 
+**The open evidence gap, named:** the one test that would move this from
+candidate cause to cause is hashing the guest's *extracted* library and
+comparing it with the copy inside the APK. That comparison was never made — the
+guest's bytes are unread — so it is an evidence gap to close, not a fix that was
+skipped.
+
 **Unknowns that must stay unknown until a guest run happens again** (guest runs
 are paused by instruction): whether the graceful stop actually removes the
 corruption; whether the tripwire fires on a healthy first install or is too
@@ -786,7 +792,20 @@ tree:
   Omarchy. **Required** host facts are just: `python3 ≥ 3.9`, those coreutils,
   a live X `DISPLAY` for the emulator, writable `/dev/kvm`, ~8 GiB free in
   `$HOME`.
-- **Audit finding, reported not papered over:** on this workstation — which has
+- **Audit finding, reported not papered over** (confirmed in source by the
+  input owner, who owns the fix): `claim_deck_pad()` logs
+  `stage=deck-pad-claimed` unconditionally (`runner.py:1481`) and cleanup logs
+  `stage=deck-pad-released` unconditionally (`runner.py:1836-1837`), while
+  `deck_pad.claim_pad()` returns an honest no-op state
+  (`mapper_stopped: false`, `lizard_forced: ""`). **Proposed fix, NOT landed**
+  (source work is frozen while the GPU task is parked): emit
+  `stage=deck-pad-claimed` only when `mapper_stopped or lizard_forced`, else
+  `stage=deck-pad-absent` with the full state and a reason; and on cleanup emit
+  `stage=deck-pad-released` only when `mapper_restarted or lizard_restored`,
+  else `stage=deck-pad-unchanged` — plus one focused test feeding the no-op
+  state, leaving existing pad tests (which all feed changed states) untouched.
+  Record it as proposed, not done.
+- On this workstation — — which has
   no mapper unit and no lizard-mode tool, verified with `ls`/`systemctl` — the
   lane logged `stage=deck-pad-claimed` with `mapper_active_before: false`,
   `mapper_stopped: false`, `lizard_forced: ""`. That is a *log that claims pad

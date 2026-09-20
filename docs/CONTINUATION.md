@@ -276,8 +276,10 @@ overridden except where they are quoted as superseded.
 - Before this session `main` was `410625e` (2026-09-17T20:20Z). The whole
   2026-09-18/19/20 session — Gaming Mode work, the installer, the tilt-panel
   removal, the HUD/audio/deck-pad modules — existed only in the workstation
-  working tree. §9.2 lists what this commit carries; the exact SHA is in the
-  commit message and in §9.7.
+  working tree. It is now committed and pushed as
+  **`9a1b3a0f7546e4c916d459042d1e2a5d1d07beb9`** (fast-forward from `410625e`,
+  no divergence; `git ls-remote origin refs/heads/main` agrees). §9.2 lists what
+  that commit carries and §9.7 records the fresh-clone proof of it.
 - Install identity matters for any redeploy: the live guest is signed with the
   Deck-side key `jcs2fresh` (`~/.jcs2-signing/jcs2-fresh.p12`, cert
   `47:B6:…:C6:67`), **not** the DB86 key that died in the 2026-09-17 wipe. Any
@@ -498,8 +500,26 @@ clean machine from public pinned URLs, the installer's checksum gate is real
 only true private prerequisites. It does **not** prove a bootable guest, a
 Gaming Mode lane, touch, audio or the Steam hand-off — those need the real
 payload plus a Deck target, which is why §9.8 and §9.9 stay as they are.
-Post-push verification of the exact commit (fresh `git clone` + offline suite)
-is recorded at the end of this section once the commit exists.
+
+**Post-push verification of the exact commit (same day, log
+`logs/fresh-clone-verify.log`).** `git clone` of the private remote at
+`9a1b3a0f7546e4c916d459042d1e2a5d1d07beb9` (the SHA `ls-remote` reports for
+`main`, fast-forward from `410625e`, no divergence) gives a tree that contains
+every session file listed in §9.2 — `deck_pad.py`, `hud_layout.py`,
+`qt_settings.py`, `test-hud-layout.py`, `install_jcs2.py`, `setup-jcs2.sh`,
+`runtime-lock.json`, `tests/test_install_jcs2.py`,
+`docs/CONTINUATION-2026-09-18.md` — with `controls_settings.py` correctly
+absent, the emulator pin resolving to 32.1.15 build 10696886 with 37.1.11 as
+`role=alternate`, and no binary or secret-shaped content tracked (the single
+grep hit for secret patterns is this repo's own manifest listing the patterns
+it sweeps for). `python3 run-offline-tests.py` on that clone:
+**`OK: 546 unittest cases across 17 suites`** in 2.3 s. Rebuilding the release
+asset from the **clean** commit gives
+`jet-car-stunts-2-setup.tar.gz` 151 114 bytes / 34 members,
+`payload_commit: 9a1b3a0…`, `tree_dirty: false`,
+`sha256 76a9f8fb53268276deca1476f2c52d4a01febc4285b039e0d1614264c8fb2dc9`
+(durable copy in the evidence dir under `release-stage/`). That hash, not the
+earlier dirty-tree one, is the reference for this paused state.
 
 ### 9.8 Known limits — keep saying these out loud
 

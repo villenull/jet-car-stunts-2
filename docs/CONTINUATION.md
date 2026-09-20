@@ -279,7 +279,9 @@ overridden except where they are quoted as superseded.
   working tree. It is now committed and pushed as
   **`9a1b3a0f7546e4c916d459042d1e2a5d1d07beb9`** (fast-forward from `410625e`,
   no divergence; `git ls-remote origin refs/heads/main` agrees). §9.2 lists what
-  that commit carries and §9.7 records the fresh-clone proof of it.
+  that commit carries and §9.7 records the fresh-clone proof of it. That SHA is
+  the *source-content* commit; docs-only commits may sit on top of it, so use
+  `git log --oneline` when you need the branch tip.
 - Install identity matters for any redeploy: the live guest is signed with the
   Deck-side key `jcs2fresh` (`~/.jcs2-signing/jcs2-fresh.p12`, cert
   `47:B6:…:C6:67`), **not** the DB86 key that died in the 2026-09-17 wipe. Any

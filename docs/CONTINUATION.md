@@ -530,8 +530,16 @@ earlier dirty-tree one, is the reference for this paused state.
   `installer-built-dry-run-verified-pending-deck-run`, and a rehearsal in an
   isolated directory is not a fresh-install validation.
 - Gaming Mode on the Deck currently runs a **software workaround at ~29 race
-  FPS**; the hardware-GPU path (`-gpu host`) still logs `ColorBuffer` errors
-  and is unresolved. Do not present the lane as GPU-correct.
+  FPS** — 29.07–29.59 sustained and 22.5 on menus, against the game's own
+  `FRAMERATE: 60fps` setting, so the cadence tracks load rather than a cap
+  (`/home/villenull/jcs2-gm-evidence/EVIDENCE-NOTES.md`) — and the hardware-GPU
+  path (`-gpu host`) still logs `ColorBuffer` errors (331 lines across the
+  backed-up `logs/run-*/emulator.log`), unresolved. The Deck operator also
+  recorded a **direct** host-GPU run at 59.14 fps while the *lane-launched*
+  host-GPU attempt failed for a reason still unexplained; that number is their
+  session record and is not corroborated by any artifact reachable from this
+  workstation, so treat the GPU path as **not established either way** rather
+  than slow by nature. Do not present the lane as GPU-correct.
 - The **physical Gaming Mode input bridge end-to-end is unverified**; desktop
   gameplay is not proof.
 - No emulator **version probe** exists anywhere: the 32.1.15 pin is enforced

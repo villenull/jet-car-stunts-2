@@ -403,10 +403,12 @@ class LaneTests(unittest.TestCase):
                 (directory / "cmdline").write_bytes(b"\x00".join(part.encode() for part in argv) + b"\x00")
             (proc / "self").mkdir()
             found = installer.owned_processes([root], "jcs2-fresh", "emulator", proc_root=str(proc))
-            self.assertEqual([pid for pid, _ in found], [101, 105])
+            # /proc order is not defined; compare as a set of pids.
+            self.assertEqual(sorted(pid for pid, _ in found), [101, 105])
             servers = installer.owned_processes([root], "jcs2-fresh", "adb-server", proc_root=str(proc))
             self.assertEqual([pid for pid, _ in servers], [103])
-            self.assertEqual(installer.owned_processes([other], "jcs2-fresh", "emulator", proc_root=str(proc))[0][0], 102)
+            self.assertEqual(sorted(pid for pid, _ in installer.owned_processes(
+                [other], "jcs2-fresh", "emulator", proc_root=str(proc))), [102, 106])
 
     def test_lane_command_and_teardown(self):
         import subprocess

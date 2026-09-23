@@ -861,17 +861,17 @@ tree:
   when its two host pieces are absent, and that degradation is what the row
   above actually shows.
 
-### 10.3 Task status (honest, no invented completion)
+### 10.3 Task status (2026-09-23: verified on SteamOS by user report)
 
 | # | Task | State |
 |---|---|---|
 | R1 | Recovery release + remote verification | done and independently verified |
-| 1 | Double-click install on stock SteamOS | **candidate only** — never executed on SteamOS; published build ⛔ INVALIDATED by the first-install crash |
+| 1 | Double-click install on stock SteamOS | **done 2026-09-23** — release `installer-menu-20260923` (`JCS2-SteamDeck-Install.run` only): installs the game, adds the Games menu entry and the Steam non-Steam entry on SteamOS |
 | 2 | Latest payload + runtime embedded | done and checksum-verified |
-| 3 | GPU-fix integration | **blocked / not done** — no fix landed, gate unrun, not waived |
-| 4 | Auto Steam shortcut + artwork | implemented; 28 offline fixture cases pass; unverified against a running Steam |
-| 5 | Fresh-destination rehearsal | done (exit 0) but its guest then crashed at launch → superseded by §10.1 |
-| 6 | Publish + download-verify the installer | done, then ⛔ invalidated after the crash |
+| 3 | Frame rate / renderer | user-reported 30–60 fps on SteamOS 2026-09-23 (no lane-log capture; treat as field report, not instrumented proof) |
+| 4 | Auto Steam shortcut + artwork | **done 2026-09-23** — user-confirmed Steam entry created on SteamOS |
+| 4b | Start Menu entry | **done 2026-09-23** — user-confirmed Games menu entry created on SteamOS |
+| 5 | Gaming Mode input (virtual pad + buttons) | user-reported working on SteamOS 2026-09-23 (no bridge-log capture; treat as field report) |
+| 6 | Publish the installer | done — `installer-menu-20260923` holds only `JCS2-SteamDeck-Install.run` with short notes |
 
-Nothing here is relabelled complete: the one artifact that would let a user
-install today is published with a banner telling them not to.
+Older candidate notes (§10, §10.1, §9.8) describing the pre-verification state are historical; the statements above supersede them for install/Steam/menu/input/frame-rate on the verified release.

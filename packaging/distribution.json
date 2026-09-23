@@ -8,7 +8,7 @@
     "JCS2_LAYOUT": "portable"
   },
   "release_asset": "jet-car-stunts-2-setup.tar.gz",
-  "release_status": "installer-built-dry-run-verified-pending-deck-run",
+  "release_status": "installer-menu-20260923-verified-on-steamos-20260923",
   "public_payload_policy": "authorized-game-and-artwork; runtime redistribution reviewed separately",
   "exclude_public": [
     "personal AVD",

@@ -76,17 +76,17 @@ reinstall/uninstall the personal guest.
   cropped genuine RGBA logo applied; baked-checker logo renders rejected,
   never applied. Rendered Steam UI pickup needs one normal user Steam launch.
 
-## Tested vs unverified
+## Tested
 
-| Area | Offline-tested | Still live-unverified |
-|---|---|---|
-| TiltDrive gate/router | 547/547 whole offline matrix (`docs/CONTINUATION.md` §3) | unselectable by design 2026-09-18 (sensor-landscape display flip); in-race authority never verified |
-| Quit hide/teardown | lifecycle/runner/window suites green | GamingMode presentation |
-| Sound v3 | file/byte guards + prior live PASS on scratch | personal redeploy audible check |
-| Editor SAVE/Select | static llvm + hash guards | whole custom save→list→reopen→restart chain |
-| Steam name/art | on-disk VDF/PNG/hash verified | rendered UI pickup |
+| Area | Status 2026-09-23 (user-verified on SteamOS) |
+|---|---|
+| Single-file install (`installer-menu-20260923`, `.run` only) | installs the game |
+| Games menu entry | created |
+| Steam non-Steam entry | created |
+| Frame rate | 30–60 fps (field report, no lane-log capture) |
+| Virtual pad + buttons | working (field report, no bridge-log capture) |
 
-Nothing here is labeled ready / fully fixed.
+Still offline-only: TiltDrive gate (unselectable by design), quit hide/teardown presentation, sound v3 audible, editor SAVE chain.
 
 ## Layout (tracked source only)
 
